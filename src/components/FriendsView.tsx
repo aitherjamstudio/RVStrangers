@@ -223,7 +223,7 @@ export const FriendsView: React.FC = () => {
                     <button 
                       onClick={() => {
                         if (isGuest) {
-                          showToast('Direct chat is reserved for registered players. Continue with Google!');
+                          loginWithGoogle();
                           return;
                         }
                         showToast(`Opened direct chat with ${f.name}`);
@@ -236,7 +236,7 @@ export const FriendsView: React.FC = () => {
                     <button 
                       onClick={() => {
                         if (isGuest) {
-                          showToast('Inviting players is reserved for registered players. Continue with Google!');
+                          loginWithGoogle();
                           return;
                         }
                         showToast(`Sent game invite to ${f.name}!`);

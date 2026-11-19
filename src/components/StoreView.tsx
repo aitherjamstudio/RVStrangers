@@ -20,7 +20,7 @@ export const StoreView: React.FC = () => {
 
   const handleWatchAd = async () => {
     if (isGuest) {
-      showToast("Rewarded ads & coin earnings are reserved for registered accounts. Please sign in with Google.");
+      loginWithGoogle();
       return;
     }
     await addCoins(50);
@@ -28,7 +28,7 @@ export const StoreView: React.FC = () => {
 
   const handleBuyDiamonds = async (amount: number, price: string) => {
     if (isGuest) {
-      showToast("In-app purchases are reserved for registered accounts. Please sign in with Google.");
+      loginWithGoogle();
       return;
     }
     await addDiamonds(amount, price);

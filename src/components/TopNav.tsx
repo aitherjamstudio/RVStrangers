@@ -3,7 +3,7 @@ import { useGameStore } from '../store/useGameStore';
 import { MessageSquare, Users, Bell } from 'lucide-react';
 
 export const TopNav: React.FC = () => {
-  const { setScreen, coins, diamonds, showToast, currentUser, isGuest } = useGameStore();
+  const { setScreen, coins, diamonds, showToast, currentUser, isGuest, loginWithGoogle } = useGameStore();
 
   return (
     <header className="sticky top-0 z-30 w-full bg-[#11031D]/90 backdrop-blur-xl border-b border-white/5 py-2.5 sm:py-3 flex items-center justify-between gap-2 select-none transition-all">
@@ -59,7 +59,7 @@ export const TopNav: React.FC = () => {
           <button 
             onClick={() => {
               if (isGuest) {
-                showToast('Direct chat is reserved for registered players. Continue with Google!');
+                loginWithGoogle();
                 return;
               }
               setScreen('friends');
