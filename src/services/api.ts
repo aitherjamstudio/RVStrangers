@@ -77,6 +77,20 @@ class ApiService {
     }
   }
 
+  // --- Auth: Centralized Hosted Portal Session Code Exchange ---
+  async exchangeSessionCode(exchangeCode: string): Promise<AuthResponse> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/session/exchange`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ exchange_code: exchangeCode }),
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Session exchange failed.' };
+    }
+  }
+
   // --- Auth: Google OAuth Exchange (Android PKCE Code Exchange) ---
   async exchangeGoogleAuthCode(code: string, codeVerifier: string, redirectUri: string): Promise<AuthResponse> {
     try {

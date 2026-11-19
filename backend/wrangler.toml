@@ -24,6 +24,7 @@ database_id = "37a90af8-3000-42e1-aaf5-d5fed1ba712c"
 [assets]
 directory = "../dist"
 binding = "STATIC_ASSETS"
+run_worker_first = true
 
 [[r2_buckets]]
 binding = "ASSETS"

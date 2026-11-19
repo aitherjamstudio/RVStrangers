@@ -394,3 +394,34 @@ All significant architectural decisions, code changes, Cloudflare edge integrati
      - Deep link payload sets up normal session in `localStorage` (`rvstrangers_auth_session`), updates wallet, sets `isAuthenticated: true, isGuest: false`, and transitions to `dashboard`.
      - Guest mode, email credentials, game logic, and UI remain 100% intact.
 
+
+
+---
+
+### [2026-11-19 22:30:00 IST] - Centralized Hosted OAuth Login Portal with Zero Token URL Leakage
+- **User Request**: Redesign RVStrangers authentication around a centralized hosted login portal. Instead of handling Google login separately inside the React website and Android app, both must redirect to our dedicated RVStrangers login page hosted online. The portal handles Google OAuth entirely through the external browser, communicates with our Cloudflare Worker to validate identity and create the normal RVStrangers session, then securely returns the user to the originating website or Android app. Preserve return destination using validated state, allow only trusted redirect destinations, never expose authentication tokens in URLs, and use secure session exchange. Keep guest login unchanged. Branded, mobile-friendly, and reliable.
+- **Architectural Implementation**:
+  1. **Strict Destination Whitelist & State Integrity**:
+     - Implemented `isTrustedRedirectUri` in Cloudflare Worker: Strictly whitelists `https://aitherjamstudio.github.io/RVStrangers/`, `com.aitherjamstudio.rvstrangers://auth`, `rvstrangers://auth`, `http://localhost:3000/`, and `http://127.0.0.1:3000/`.
+     - HMAC-SHA256 state signing (`signOAuthState` / `verifyOAuthState`): OAuth state embeds `{ redirect_uri, client_state, timestamp }` signed with `JWT_SECRET` and expires in 15 minutes. Prevents open redirect attacks, CSRF, and state tampering.
+  2. **Branded Hosted Login Portal (`GET /login` or `GET /api/auth/login`)**:
+     - Serves a self-contained, responsive mobile portal matching the approved RVStrangers dark neon purple design specifications (`#07000E`, Comfortaa font, ambient glows, corner cards, central squircle hero badge with glowing cards and golden star).
+     - Prominent **Continue with Google** action button linking directly to Google's OAuth endpoint with signed state and Cloudflare Worker callback.
+     - Secondary **Continue as Guest** button with Quick Play tag returning cleanly to the originating client.
+     - Absolutely no email login or extraneous elements.
+  3. **Zero Token URL Leakage via Single-Use Exchange Code Flow**:
+     - Cloudflare D1 table created: `auth_exchange_codes (code TEXT PRIMARY KEY, token TEXT NOT NULL, user_id TEXT NOT NULL, expires_at INTEGER NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`.
+     - When Google redirects to `GET /api/auth/google/callback`:
+       - Worker verifies HMAC state and trusted destination.
+       - Worker securely exchanges authorization code with Google (`https://oauth2.googleapis.com/token`) using `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+       - Worker validates identity and issues normal RVStrangers session in Cloudflare D1 (`profiles` and `wallet_balances`).
+       - Worker generates a cryptographically random, short-lived single-use exchange code (`exc_...`, 60-second TTL) stored in `auth_exchange_codes`.
+       - Worker redirects to destination with `?exchange_code=...&state=...`. **Zero JWT tokens or secrets are ever exposed in URLs or browser history.**
+  4. **Atomic Session Exchange Endpoint (`POST /api/auth/session/exchange`)**:
+     - Consumes `exchange_code` atomically via `DELETE FROM auth_exchange_codes WHERE code = ?`.
+     - Returns `{ success: true, token, user, wallet }` in the HTTP JSON response body.
+  5. **Unified Client Service ([src/services/hostedAuth.ts](file:///D:/RVStrangers/src/services/hostedAuth.ts))**:
+     - Unifies Web and Android clients: both launch `https://worker.aitherjamstudio.workers.dev/login?redirect_uri=...&state=...`.
+     - On Android: Opens system browser via `@capacitor/browser`, receives deep link callback via `@capacitor/app`, auto-closes browser, calls `exchangeSessionCode`, and applies session.
+     - On Web: Redirects to hosted portal, receives `exchange_code` on return, cleans URL parameters immediately via `window.history.replaceState`, calls `exchangeSessionCode`, and applies session.
+     - Preserves guest mode, game logic, and account balances 100%.

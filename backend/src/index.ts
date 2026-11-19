@@ -143,8 +143,25 @@ async function authenticateRequest(request: Request, env: Env): Promise<JWTPaylo
   return verifyJWT(token, secret);
 }
 
+// Interface for unified Google user session result
+interface UserSessionResult {
+  token: string;
+  user: {
+    id: string;
+    name: string;
+    email?: string;
+    handle: string;
+    avatar: string;
+    isGuest: boolean;
+  };
+  wallet: {
+    coins: number;
+    diamonds: number;
+  };
+}
+
 // Helper: Securely find or create profile in D1 and issue session JWT
-async function handleGoogleUserSession(googleUser: any, env: Env, secret: string): Promise<Response> {
+async function createOrGetGoogleUserSession(googleUser: any, env: Env, secret: string): Promise<UserSessionResult> {
   const googleId = googleUser.sub;
   const userEmail = (googleUser.email || '').toLowerCase();
   const displayName = googleUser.name || userEmail.split('@')[0] || 'Player';
@@ -186,8 +203,7 @@ async function handleGoogleUserSession(googleUser: any, env: Env, secret: string
 
   const token = await signJWT({ sub: user.id, username: user.username, is_guest: false }, secret);
 
-  return jsonResponse({
-    success: true,
+  return {
     token,
     user: {
       id: user.id,
@@ -200,8 +216,794 @@ async function handleGoogleUserSession(googleUser: any, env: Env, secret: string
     wallet: {
       coins: wallet.coins,
       diamonds: wallet.diamonds,
-    }
+    },
+  };
+}
+
+async function handleGoogleUserSession(googleUser: any, env: Env, secret: string): Promise<Response> {
+  const result = await createOrGetGoogleUserSession(googleUser, env, secret);
+  return jsonResponse({
+    success: true,
+    ...result,
   });
+}
+
+// --------------------------------------------------------
+// OAuth State & Security Whitelist Helpers
+// --------------------------------------------------------
+interface OAuthStateData {
+  r: string; // redirect_uri
+  s: string; // client_state
+  t: number; // timestamp
+}
+
+async function signOAuthState(data: OAuthStateData, secret: string): Promise<string> {
+  const jsonStr = JSON.stringify(data);
+  const encodedData = stringToBase64Url(jsonStr);
+  const key = await getCryptoKey(secret);
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(encodedData));
+  const encodedSig = bytesToBase64Url(new Uint8Array(signature));
+  return `${encodedData}.${encodedSig}`;
+}
+
+async function verifyOAuthState(stateString: string, secret: string): Promise<OAuthStateData | null> {
+  try {
+    const parts = stateString.split('.');
+    if (parts.length !== 2) return null;
+    const [encodedData, encodedSig] = parts;
+    const key = await getCryptoKey(secret);
+    const sigBytes = base64UrlToBytes(encodedSig);
+    const isValid = await crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(encodedData));
+    if (!isValid) return null;
+
+    const data: OAuthStateData = JSON.parse(base64UrlToString(encodedData));
+    if (Date.now() - data.t > 15 * 60 * 1000) return null; // 15-minute validity window
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function isTrustedRedirectUri(uri: string): boolean {
+  if (!uri || typeof uri !== 'string') return false;
+  // Android APK Deep Links
+  if (
+    uri.startsWith('com.aitherjamstudio.rvstrangers://auth') ||
+    uri.startsWith('rvstrangers://auth')
+  ) {
+    return true;
+  }
+  try {
+    const parsed = new URL(uri);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return false;
+    }
+    // Production Web Client (GitHub Pages)
+    if (parsed.hostname === 'aitherjamstudio.github.io') {
+      return parsed.pathname.startsWith('/RVStrangers');
+    }
+    // Localhost Development
+    if (
+      parsed.hostname === 'localhost' ||
+      parsed.hostname === '127.0.0.1' ||
+      parsed.hostname === '0.0.0.0'
+    ) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function renderDeepLinkBridgeHtml(deepLink: string, fallbackLink: string, error?: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RVStrangers - Returning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #0B0114;
+      color: #FFFFFF;
+      font-family: 'Comfortaa', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .card {
+      background: linear-gradient(180deg, #180429 0%, #0E0119 100%);
+      border: 1px solid rgba(217, 70, 239, 0.4);
+      box-shadow: 0 0 40px rgba(236, 72, 153, 0.35);
+      border-radius: 32px;
+      padding: 40px 28px;
+      max-width: 380px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(217, 70, 239, 0.2);
+      border-top-color: #F43F9E;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 24px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      font-weight: 800;
+      color: #FFFFFF;
+    }
+    p {
+      color: rgba(233, 213, 255, 0.85);
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 0 28px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px 20px;
+      background: #FFFFFF;
+      color: #140224;
+      font-weight: 800;
+      font-size: 15px;
+      border-radius: 9999px;
+      text-decoration: none;
+      box-shadow: 0 0 30px rgba(236, 72, 153, 0.5);
+      box-sizing: border-box;
+      transition: transform 0.15s ease;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h2>${error ? 'Authentication Notice' : 'Returning to RVStrangers'}</h2>
+    <p>${error ? error : 'Identity verified. Returning you to your game...'}</p>
+    <a href="${deepLink}" class="btn">Open RVStrangers</a>
+  </div>
+  <script>
+    const deepLink = ${JSON.stringify(deepLink)};
+    const fallbackLink = ${JSON.stringify(fallbackLink)};
+    try {
+      window.location.replace(deepLink);
+    } catch (e) {
+      window.location.href = deepLink;
+    }
+    setTimeout(() => {
+      try { window.location.href = fallbackLink; } catch (e) {}
+    }, 1200);
+  </script>
+</body>
+</html>`;
+}
+
+function renderSecurityErrorHtml(title: string, message: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RVStrangers - Security Notice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #0B0114;
+      color: #FFFFFF;
+      font-family: 'Comfortaa', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .card {
+      background: linear-gradient(180deg, #180429 0%, #0E0119 100%);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      box-shadow: 0 0 40px rgba(239, 68, 68, 0.25);
+      border-radius: 32px;
+      padding: 40px 28px;
+      max-width: 380px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .icon {
+      font-size: 40px;
+      margin-bottom: 16px;
+    }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      font-weight: 800;
+      color: #F87171;
+    }
+    p {
+      color: rgba(233, 213, 255, 0.85);
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 0 28px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px 20px;
+      background: #FFFFFF;
+      color: #140224;
+      font-weight: 800;
+      font-size: 15px;
+      border-radius: 9999px;
+      text-decoration: none;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🛡️</div>
+    <h2>${title}</h2>
+    <p>${message}</p>
+    <a href="https://aitherjamstudio.github.io/RVStrangers/" class="btn">Return to RVStrangers</a>
+  </div>
+</body>
+</html>`;
+}
+
+function renderHostedLoginHtml(googleAuthUrl: string, guestUrl: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RVStrangers - Welcome</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      background-color: #07000E;
+      color: #FFFFFF;
+      font-family: 'Comfortaa', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      overflow-x: hidden;
+      position: relative;
+    }
+    /* Ambient Glows */
+    .glow-top-left {
+      position: fixed;
+      top: -80px;
+      left: -80px;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 46, 147, 0.35) 0%, rgba(138, 43, 226, 0.15) 50%, transparent 70%);
+      filter: blur(60px);
+      pointer-events: none;
+    }
+    .glow-bottom-right {
+      position: fixed;
+      bottom: -80px;
+      right: -80px;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(217, 70, 239, 0.3) 0%, rgba(138, 43, 226, 0.15) 50%, transparent 70%);
+      filter: blur(60px);
+      pointer-events: none;
+    }
+    /* Mobile Frame */
+    .app-frame {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      min-height: 680px;
+      max-height: 840px;
+      background: linear-gradient(180deg, #130222 0%, #0D011A 50%, #07000E 100%);
+      border-radius: 40px;
+      border: 1px solid rgba(217, 70, 239, 0.25);
+      box-shadow: 0 0 60px rgba(217, 70, 239, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 32px 24px;
+      overflow: hidden;
+    }
+    /* Angled Floating Cards in Corners */
+    .floating-card-left {
+      position: absolute;
+      top: -16px;
+      left: -20px;
+      width: 100px;
+      height: 145px;
+      border-radius: 18px;
+      background: rgba(35, 9, 56, 0.45);
+      border: 1px solid rgba(217, 70, 239, 0.35);
+      box-shadow: 0 0 20px rgba(217, 70, 239, 0.2);
+      transform: rotate(-26deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0.8;
+      backdrop-filter: blur(2px);
+    }
+    .floating-card-right {
+      position: absolute;
+      top: -16px;
+      right: -20px;
+      width: 100px;
+      height: 145px;
+      border-radius: 18px;
+      background: rgba(35, 9, 56, 0.45);
+      border: 1px solid rgba(217, 70, 239, 0.35);
+      box-shadow: 0 0 20px rgba(217, 70, 239, 0.2);
+      transform: rotate(26deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0.8;
+      backdrop-filter: blur(2px);
+    }
+    .heart-icon {
+      width: 32px;
+      height: 32px;
+      fill: #F43F9E;
+      filter: drop-shadow(0 0 8px rgba(244, 63, 158, 0.9));
+    }
+    .star-icon {
+      width: 32px;
+      height: 32px;
+      fill: #F43F9E;
+      filter: drop-shadow(0 0 8px rgba(244, 63, 158, 0.9));
+    }
+    /* Hero Badge */
+    .badge-wrap {
+      position: relative;
+      width: 116px;
+      height: 116px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 8px;
+    }
+    .badge-blur {
+      position: absolute;
+      inset: 0;
+      border-radius: 30px;
+      background: linear-gradient(135deg, #FF2E93, #D946EF, #8B5CF6);
+      filter: blur(18px);
+      opacity: 0.85;
+      animation: pulse 3s ease-in-out infinite alternate;
+    }
+    @keyframes pulse {
+      0% { opacity: 0.7; transform: scale(0.96); }
+      100% { opacity: 0.95; transform: scale(1.04); }
+    }
+    .badge-squircle {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 28px;
+      background: linear-gradient(180deg, #2B0B47 0%, #18042B 65%, #120220 100%);
+      border: 2px solid rgba(244, 63, 158, 0.65);
+      box-shadow: 0 0 35px rgba(236, 72, 153, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .card-back {
+      position: absolute;
+      width: 48px;
+      height: 70px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #8A2BE2, #9B30FF, #6A0DAD);
+      border: 1px solid rgba(217, 70, 239, 0.5);
+      box-shadow: 0 0 14px rgba(168, 85, 247, 0.6);
+      transform: rotate(-16deg) translate(-10px, -2px);
+    }
+    .card-front {
+      position: absolute;
+      width: 48px;
+      height: 70px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #E026D8, #FF2E93, #C026D3);
+      border: 2px solid rgba(255, 210, 240, 0.85);
+      box-shadow: 0 0 20px rgba(236, 72, 153, 0.8);
+      transform: rotate(15deg) translate(10px, 2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card-star {
+      width: 22px;
+      height: 22px;
+      fill: #FDE047;
+      filter: drop-shadow(0 0 8px rgba(253, 224, 71, 0.95));
+    }
+    /* Branding */
+    .title-group {
+      text-align: center;
+      margin-top: 18px;
+    }
+    .brand-title {
+      font-size: 34px;
+      font-weight: 900;
+      font-style: italic;
+      letter-spacing: -0.5px;
+    }
+    .brand-rv {
+      color: #FFFFFF;
+      text-shadow: 0 2px 10px rgba(255, 255, 255, 0.2);
+    }
+    .brand-strangers {
+      background: linear-gradient(90deg, #FF3EA5 0%, #F43F9E 50%, #E026D8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 16px rgba(244, 63, 158, 0.6));
+    }
+    .brand-subtitle {
+      color: rgba(243, 232, 255, 0.85);
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      margin-top: 6px;
+    }
+    .brand-arc {
+      position: relative;
+      width: 130px;
+      height: 10px;
+      margin: 8px auto 0;
+      overflow: hidden;
+    }
+    .brand-arc::after {
+      content: '';
+      position: absolute;
+      top: -14px;
+      left: 0;
+      width: 130px;
+      height: 22px;
+      border-radius: 50%;
+      border-bottom: 2px solid #D946EF;
+      box-shadow: 0 4px 12px #D946EF;
+    }
+    /* 3 Feature Pillars */
+    .pillars-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 340px;
+      margin: 22px 0 10px;
+      padding: 0 4px;
+    }
+    .pillar-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+    .pillar-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    }
+    .pillar-svg {
+      width: 20px;
+      height: 20px;
+      stroke: #E9D5FF;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+    .pillar-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #E9D5FF;
+      text-align: center;
+      line-height: 1.25;
+      margin-top: 7px;
+    }
+    .pillar-divider {
+      width: 1px;
+      height: 28px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    /* Buttons */
+    .actions-box {
+      width: 100%;
+      max-width: 350px;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      z-index: 10;
+      margin-bottom: 8px;
+    }
+    .btn-google {
+      width: 100%;
+      height: 56px;
+      padding: 0 22px;
+      border-radius: 9999px;
+      background: #FFFFFF;
+      color: #140224;
+      font-weight: 800;
+      font-size: 15px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 0 35px rgba(236, 72, 153, 0.5);
+      transition: all 0.2s ease;
+      border: 1px solid #FFFFFF;
+    }
+    .btn-google:hover {
+      box-shadow: 0 0 45px rgba(236, 72, 153, 0.7);
+      background: #FAFAFA;
+      transform: translateY(-1px);
+    }
+    .btn-google:active {
+      transform: scale(0.98);
+    }
+    .btn-guest {
+      width: 100%;
+      height: 56px;
+      padding: 0 20px;
+      border-radius: 9999px;
+      background: rgba(24, 4, 41, 0.85);
+      border: 2px solid rgba(217, 70, 239, 0.8);
+      color: #FFFFFF;
+      font-weight: 800;
+      font-size: 15px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 0 20px rgba(217, 70, 239, 0.3);
+      backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+    }
+    .btn-guest:hover {
+      border-color: #D946EF;
+      box-shadow: 0 0 30px rgba(217, 70, 239, 0.5);
+      transform: translateY(-1px);
+    }
+    .btn-guest:active {
+      transform: scale(0.98);
+    }
+    .quick-play-pill {
+      padding: 5px 12px;
+      border-radius: 9999px;
+      background: #8E1A8B;
+      color: #F5D0FE;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      border: 1px solid rgba(244, 114, 182, 0.35);
+    }
+    /* Pagination Dots */
+    .dots-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      margin-top: 6px;
+    }
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(217, 70, 239, 0.4);
+    }
+    .dot-active {
+      width: 7px;
+      height: 7px;
+      background: #FF2E93;
+      box-shadow: 0 0 8px #FF2E93;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-top-left"></div>
+  <div class="glow-bottom-right"></div>
+
+  <div class="app-frame">
+    <!-- Top Floating Angled Cards -->
+    <div class="floating-card-left">
+      <svg class="heart-icon" viewBox="0 0 24 24">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+      </svg>
+    </div>
+    <div class="floating-card-right">
+      <svg class="star-icon" viewBox="0 0 24 24">
+        <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+      </svg>
+    </div>
+
+    <!-- Center Content -->
+    <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin: auto 0;">
+      <!-- Hero Squircle Badge -->
+      <div class="badge-wrap">
+        <div class="badge-blur"></div>
+        <div class="badge-squircle">
+          <div class="card-back"></div>
+          <div class="card-front">
+            <svg class="card-star" viewBox="0 0 24 24">
+              <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Title & Tagline -->
+      <div class="title-group">
+        <h1 class="brand-title">
+          <span class="brand-rv">RV</span><span class="brand-strangers">Strangers</span>
+        </h1>
+        <p class="brand-subtitle">Built for meaningful connections.</p>
+        <div class="brand-arc"></div>
+      </div>
+
+      <!-- 3 Feature Pillars -->
+      <div class="pillars-row">
+        <div class="pillar-item">
+          <div class="pillar-icon-box">
+            <svg class="pillar-svg" viewBox="0 0 24 24">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <span class="pillar-label">Meet<br/>New People</span>
+        </div>
+
+        <div class="pillar-divider"></div>
+
+        <div class="pillar-item">
+          <div class="pillar-icon-box">
+            <svg class="pillar-svg" viewBox="0 0 24 24">
+              <rect x="3" y="5" width="13" height="15" rx="2" transform="rotate(-6 3 5)" />
+              <rect x="8" y="3" width="13" height="15" rx="2" transform="rotate(6 8 3)" />
+              <path d="M14.5 9.5l.6 1.2 1.2.6-1.2.6-.6 1.2-.6-1.2-1.2-.6 1.2-.6z" fill="currentColor" />
+            </svg>
+          </div>
+          <span class="pillar-label">Play<br/>Card Games</span>
+        </div>
+
+        <div class="pillar-divider"></div>
+
+        <div class="pillar-item">
+          <div class="pillar-icon-box">
+            <svg class="pillar-svg" viewBox="0 0 24 24">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              <circle cx="8" cy="10" r="1" fill="currentColor" stroke="none" />
+              <circle cx="12" cy="10" r="1" fill="currentColor" stroke="none" />
+              <circle cx="16" cy="10" r="1" fill="currentColor" stroke="none" />
+            </svg>
+          </div>
+          <span class="pillar-label">Chat<br/>& Connect</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions-box">
+      <!-- Continue with Google -->
+      <a href="${googleAuthUrl}" class="btn-google">
+        <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.15z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.36 7.33 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.24C.45 8.15 0 9.92 0 12s.45 3.85 1.24 5.42l4.04-3.15z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+          </svg>
+        </div>
+        <span style="flex: 1; text-align: center; color: #140224; font-weight: 800; font-size: 15px;">
+          Continue with Google
+        </span>
+        <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0;">
+          <svg style="width: 20px; height: 20px; stroke: #140224; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round;" viewBox="0 0 24 24">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </div>
+      </a>
+
+      <!-- Continue as Guest -->
+      <a href="${guestUrl}" class="btn-guest">
+        <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg style="width: 20px; height: 20px; stroke: #E9D5FF; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round;" viewBox="0 0 24 24">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </div>
+        <span style="flex: 1; text-align: center; color: #FFFFFF; font-weight: 800; font-size: 15px;">
+          Continue as Guest
+        </span>
+        <div style="flex-shrink: 0;">
+          <span class="quick-play-pill">Quick Play</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Bottom Pagination Dots -->
+    <div class="dots-row">
+      <div class="dot"></div>
+      <div class="dot dot-active"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function redirectToDestination(redirectUri: string, params: Record<string, string>): Response {
+  if (redirectUri.startsWith('com.aitherjamstudio.rvstrangers://') || redirectUri.startsWith('rvstrangers://')) {
+    const deepLinkUrl = new URL(redirectUri);
+    for (const [k, v] of Object.entries(params)) {
+      if (v) deepLinkUrl.searchParams.set(k, v);
+    }
+    const fullDeepLink = deepLinkUrl.toString();
+    const fallbackLink = fullDeepLink.replace('com.aitherjamstudio.rvstrangers://', 'rvstrangers://');
+    return new Response(renderDeepLinkBridgeHtml(fullDeepLink, fallbackLink, params.error), {
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        ...corsHeaders,
+      },
+    });
+  }
+
+  const target = new URL(redirectUri);
+  for (const [k, v] of Object.entries(params)) {
+    if (v) target.searchParams.set(k, v);
+  }
+  return Response.redirect(target.toString(), 302);
 }
 
 // --------------------------------------------------------
@@ -218,7 +1020,7 @@ export default {
     }
 
     // 0. STATIC ASSET SERVING (Serve React Web PWA directly from Worker)
-    if (env.STATIC_ASSETS && !url.pathname.startsWith('/api/') && url.pathname !== '/health') {
+    if (env.STATIC_ASSETS && !url.pathname.startsWith('/api/') && url.pathname !== '/health' && url.pathname !== '/login') {
       try {
         const assetReq = url.pathname.startsWith('/RVStrangers')
           ? new Request(new URL(url.pathname.replace(/^\/RVStrangers/, '') || '/', request.url), request)
@@ -258,18 +1060,71 @@ export default {
       // AUTHENTICATION ROUTES
       // ========================================================
 
+      // GET /login or /api/auth/login (Centralized Branded RVStrangers Hosted OAuth Portal)
+      if ((url.pathname === '/login' || url.pathname === '/auth/login' || url.pathname === '/api/auth/login') && method === 'GET') {
+        const redirectUri = url.searchParams.get('redirect_uri') || 'https://aitherjamstudio.github.io/RVStrangers/';
+        const clientState = url.searchParams.get('state') || '';
+
+        if (!isTrustedRedirectUri(redirectUri)) {
+          return new Response(
+            renderSecurityErrorHtml(
+              'Untrusted Redirect Destination',
+              'For your security, this authentication portal only connects to authorized RVStrangers applications.'
+            ),
+            {
+              status: 400,
+              headers: { 'Content-Type': 'text/html; charset=utf-8', ...corsHeaders },
+            }
+          );
+        }
+
+        const statePayload: OAuthStateData = {
+          r: redirectUri,
+          s: clientState,
+          t: Date.now(),
+        };
+        const signedState = await signOAuthState(statePayload, secret);
+
+        const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+        googleAuthUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID || '');
+        googleAuthUrl.searchParams.set('redirect_uri', `${url.origin}/api/auth/google/callback`);
+        googleAuthUrl.searchParams.set('response_type', 'code');
+        googleAuthUrl.searchParams.set('scope', 'openid email profile');
+        googleAuthUrl.searchParams.set('state', signedState);
+        googleAuthUrl.searchParams.set('prompt', 'select_account');
+
+        // Guest Return URL
+        let guestUrl = redirectUri;
+        try {
+          const parsedGuest = new URL(redirectUri);
+          parsedGuest.searchParams.set('guest', '1');
+          if (clientState) parsedGuest.searchParams.set('state', clientState);
+          guestUrl = parsedGuest.toString();
+        } catch {
+          guestUrl = `${redirectUri}${redirectUri.includes('?') ? '&' : '?'}guest=1${clientState ? '&state=' + encodeURIComponent(clientState) : ''}`;
+        }
+
+        const html = renderHostedLoginHtml(googleAuthUrl.toString(), guestUrl);
+        return new Response(html, {
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-store, max-age=0',
+            ...corsHeaders,
+          },
+        });
+      }
+
       // GET /api/auth/google/config
       if (url.pathname === '/api/auth/google/config' && method === 'GET') {
         return jsonResponse({ clientId: env.GOOGLE_CLIENT_ID || null });
       }
 
-      // POST /api/auth/google (Web One Tap / GIS ID Token verification)
+      // POST /api/auth/google (Web One Tap / Direct Token Verification)
       if (url.pathname === '/api/auth/google' && method === 'POST') {
         const body: any = await request.json().catch(() => ({}));
         const { credential } = body;
         if (!credential || !env.GOOGLE_CLIENT_ID) return errorResponse('Google sign-in is not configured.', 503);
 
-        // Do not trust client-decoded JWT claims. Google verifies the ID token first.
         const verification = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
         if (!verification.ok) return errorResponse('Google could not verify this sign-in.', 401);
         const googleUser: any = await verification.json();
@@ -280,124 +1135,162 @@ export default {
         return handleGoogleUserSession(googleUser, env, secret);
       }
 
-      // GET /api/auth/google/callback (Android External Browser OAuth Redirect Bridge)
+      // GET /api/auth/google/callback (Google OAuth Redirect Callback)
       if (url.pathname === '/api/auth/google/callback' && method === 'GET') {
         const code = url.searchParams.get('code');
         const state = url.searchParams.get('state') || '';
         const error = url.searchParams.get('error');
 
-        const appScheme = 'com.aitherjamstudio.rvstrangers://auth';
-        const fallbackScheme = 'rvstrangers://auth';
+        const stateData = await verifyOAuthState(state, secret);
+        if (!stateData || !isTrustedRedirectUri(stateData.r)) {
+          return new Response(
+            renderSecurityErrorHtml(
+              'Authentication Verification Failed',
+              'The authentication request was invalid, tampered with, or expired. Please return to the app and try signing in again.'
+            ),
+            {
+              status: 400,
+              headers: { 'Content-Type': 'text/html; charset=utf-8', ...corsHeaders },
+            }
+          );
+        }
 
-        const queryParams = new URLSearchParams();
-        if (error) queryParams.set('error', error);
-        if (code) queryParams.set('code', code);
-        if (state) queryParams.set('state', state);
+        const redirectUri = stateData.r;
+        const clientState = stateData.s;
 
-        const deepLink = `${appScheme}?${queryParams.toString()}`;
-        const fallbackLink = `${fallbackScheme}?${queryParams.toString()}`;
+        if (error) {
+          return redirectToDestination(redirectUri, { error, state: clientState });
+        }
 
-        const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RVStrangers - Signing In</title>
-  <style>
-    body {
-      background-color: #0b0114;
-      color: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, 'Comfortaa', 'Segoe UI', Roboto, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
-      box-sizing: border-box;
-      text-align: center;
-    }
-    .card {
-      background: rgba(27, 4, 43, 0.9);
-      border: 1px solid rgba(217, 70, 239, 0.4);
-      box-shadow: 0 0 35px rgba(236, 72, 153, 0.4);
-      border-radius: 28px;
-      padding: 36px 28px;
-      max-width: 380px;
-      width: 100%;
-    }
-    .spinner {
-      width: 44px;
-      height: 44px;
-      border: 4px solid rgba(217, 70, 239, 0.2);
-      border-top-color: #f43f9e;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    h2 {
-      margin: 0 0 10px;
-      font-size: 20px;
-      font-weight: 800;
-      color: #fff;
-    }
-    p {
-      color: rgba(233, 213, 255, 0.85);
-      font-size: 14px;
-      line-height: 1.5;
-      margin: 0 0 24px;
-    }
-    .btn {
-      display: inline-block;
-      width: 100%;
-      padding: 14px 20px;
-      background: #ffffff;
-      color: #140224;
-      font-weight: 700;
-      font-size: 15px;
-      border-radius: 9999px;
-      text-decoration: none;
-      box-shadow: 0 0 25px rgba(236, 72, 153, 0.5);
-      box-sizing: border-box;
-      transition: transform 0.15s ease;
-    }
-    .btn:active {
-      transform: scale(0.98);
-    }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="spinner"></div>
-    <h2>${error ? 'Authentication Error' : 'Returning to RVStrangers'}</h2>
-    <p>${error ? error : 'Authentication complete. Returning you to the game...'}</p>
-    <a href="${deepLink}" class="btn" id="openBtn">Open RVStrangers</a>
-  </div>
-  <script>
-    const deepLink = ${JSON.stringify(deepLink)};
-    const fallbackLink = ${JSON.stringify(fallbackLink)};
-    try {
-      window.location.replace(deepLink);
-    } catch (e) {
-      window.location.href = deepLink;
-    }
-    setTimeout(() => {
-      try {
-        window.location.href = fallbackLink;
-      } catch (e) {}
-    }, 1000);
-  </script>
-</body>
-</html>`;
+        if (!code) {
+          return redirectToDestination(redirectUri, { error: 'Missing authorization code from Google', state: clientState });
+        }
 
-        return new Response(html, {
+        if (!env.GOOGLE_CLIENT_ID) {
+          return redirectToDestination(redirectUri, { error: 'Google sign-in is not configured on the server.', state: clientState });
+        }
+
+        const tokenParams = new URLSearchParams({
+          client_id: env.GOOGLE_CLIENT_ID,
+          code,
+          grant_type: 'authorization_code',
+          redirect_uri: `${url.origin}/api/auth/google/callback`,
+        });
+        if (env.GOOGLE_CLIENT_SECRET) {
+          tokenParams.set('client_secret', env.GOOGLE_CLIENT_SECRET);
+        }
+
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
           headers: {
-            'Content-Type': 'text/html; charset=utf-8',
-            ...corsHeaders,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: tokenParams.toString(),
+        });
+
+        if (!tokenRes.ok) {
+          const errData: any = await tokenRes.json().catch(() => ({}));
+          const errMsg = errData.error_description || errData.error || 'Failed to exchange authorization code with Google.';
+          return redirectToDestination(redirectUri, { error: errMsg, state: clientState });
+        }
+
+        const tokenData: any = await tokenRes.json();
+        const idToken = tokenData.id_token;
+        let googleUser: any = null;
+
+        if (idToken) {
+          const verification = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+          if (verification.ok) {
+            const parsed: any = await verification.json();
+            if (parsed.aud === env.GOOGLE_CLIENT_ID && parsed.email_verified === 'true' && parsed.sub && parsed.email) {
+              googleUser = parsed;
+            }
+          }
+        }
+
+        if (!googleUser && tokenData.access_token) {
+          const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          });
+          if (userinfoRes.ok) {
+            const parsed: any = await userinfoRes.json();
+            if (parsed.sub && parsed.email) {
+              googleUser = parsed;
+            }
+          }
+        }
+
+        if (!googleUser) {
+          return redirectToDestination(redirectUri, { error: 'Could not verify your Google account profile.', state: clientState });
+        }
+
+        // Create or retrieve session in D1
+        const sessionData = await createOrGetGoogleUserSession(googleUser, env, secret);
+
+        // Generate single-use exchange code (60-second TTL)
+        const exchangeCode = 'exc_' + crypto.randomUUID().replace(/-/g, '');
+        const expiresAt = Date.now() + 60 * 1000;
+
+        await env.DB.prepare(
+          'INSERT INTO auth_exchange_codes (code, token, user_id, expires_at) VALUES (?, ?, ?, ?)'
+        ).bind(exchangeCode, sessionData.token, sessionData.user.id, expiresAt).run();
+
+        // Securely redirect to originating destination (Zero tokens in URL!)
+        return redirectToDestination(redirectUri, {
+          exchange_code: exchangeCode,
+          state: clientState,
+        });
+      }
+
+      // POST /api/auth/session/exchange (Secure One-Time Code Exchange)
+      if (url.pathname === '/api/auth/session/exchange' && method === 'POST') {
+        const body: any = await request.json().catch(() => ({}));
+        const { exchange_code } = body;
+
+        if (!exchange_code || typeof exchange_code !== 'string') {
+          return errorResponse('Missing exchange_code parameter.', 400);
+        }
+
+        const row: any = await env.DB.prepare(
+          'SELECT code, token, user_id, expires_at FROM auth_exchange_codes WHERE code = ?'
+        ).bind(exchange_code).first();
+
+        if (!row) {
+          return errorResponse('Invalid or already consumed exchange code.', 401);
+        }
+
+        // Atomically delete the code to guarantee single-use
+        await env.DB.prepare('DELETE FROM auth_exchange_codes WHERE code = ?').bind(exchange_code).run();
+
+        if (row.expires_at < Date.now()) {
+          return errorResponse('Exchange code has expired. Please sign in again.', 401);
+        }
+
+        // Asynchronously clean up stale expired codes
+        env.DB.prepare('DELETE FROM auth_exchange_codes WHERE expires_at < ?').bind(Date.now()).run().catch(() => {});
+
+        // Fetch verified user from D1
+        const user: any = await env.DB.prepare('SELECT * FROM profiles WHERE id = ?').bind(row.user_id).first();
+        if (!user) {
+          return errorResponse('User profile not found.', 404);
+        }
+
+        const wallet: any = await env.DB.prepare('SELECT coins, diamonds FROM wallet_balances WHERE user_id = ?').bind(user.id).first() || { coins: 0, diamonds: 0 };
+
+        return jsonResponse({
+          success: true,
+          token: row.token,
+          user: {
+            id: user.id,
+            name: user.display_name,
+            email: user.email,
+            handle: user.username,
+            avatar: user.avatar_url,
+            isGuest: Boolean(user.is_guest),
+          },
+          wallet: {
+            coins: wallet.coins,
+            diamonds: wallet.diamonds,
           },
         });
       }

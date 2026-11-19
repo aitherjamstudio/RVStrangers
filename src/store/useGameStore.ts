@@ -1,8 +1,12 @@
 import { create } from 'zustand';
 import { ScreenType, AuthUser, AuthSession } from '../types';
 import { api, AuthResponse } from '../services/api';
-import { googleAuthService } from '../services/googleAuth';
-import { isNativeAndroid, startAndroidGoogleOAuth, initAndroidAuth } from '../services/androidAuth';
+import { 
+  isNativeAndroid, 
+  startHostedGoogleLogin, 
+  initHostedAndroidAuth, 
+  checkWebHostedAuthExchange 
+} from '../services/hostedAuth';
 
 const SESSION_STORAGE_KEY = 'rvstrangers_auth_session';
 
@@ -91,15 +95,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
   initSessionFromD1: async () => {
     // If native Android, initialize external browser OAuth deep link handler
     if (isNativeAndroid()) {
-      initAndroidAuth(
+      initHostedAndroidAuth(
         (authRes) => get().applyAuthSession(authRes),
-        (errMsg) => get().showToast(errMsg)
+        (errMsg) => get().showToast(errMsg),
+        () => get().continueAsGuest()
       );
     } else {
-      // Pre-initialize Google Identity Services once in the background for Web
-      googleAuthService.ensureInitialized((token) => {
-        get().loginWithGoogle(token);
-      }).catch(() => {});
+      // Check if returning from centralized hosted portal with one-time exchange code
+      await checkWebHostedAuthExchange(
+        (authRes) => get().applyAuthSession(authRes),
+        (errMsg) => get().showToast(errMsg),
+        () => get().continueAsGuest()
+      );
     }
 
     const currentToken = get().token;
@@ -221,30 +228,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   loginWithGoogle: async (credential) => {
-    if (!credential) {
-      // On Android APK, use external system browser OAuth with PKCE and deep links
-      if (isNativeAndroid()) {
-        get().showToast('Opening browser for Google sign-in...');
-        const result = await startAndroidGoogleOAuth();
-        if (!result.success && result.error) {
-          get().showToast(result.error);
-        }
-        return;
-      }
-
-      // On Web, use Google Identity Services (GIS) One Tap / popup
-      const result = await googleAuthService.promptSignIn((token) => {
-        get().loginWithGoogle(token);
-      });
-      if (!result.success && result.error) {
-        get().showToast(result.error);
-      }
+    if (credential) {
+      get().showToast('Connecting with Google...');
+      const res = await api.loginWithGoogle(credential);
+      get().applyAuthSession(res);
       return;
     }
 
-    get().showToast('Connecting with Google...');
-    const res = await api.loginWithGoogle(credential);
-    get().applyAuthSession(res);
+    get().showToast('Redirecting to RVStrangers secure sign-in...');
+    const result = await startHostedGoogleLogin();
+    if (!result.success && result.error) {
+      get().showToast(result.error);
+    }
   },
 
   loginWithCredentials: async (email, pass) => {
