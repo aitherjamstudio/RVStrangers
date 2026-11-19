@@ -275,3 +275,20 @@ All significant architectural decisions, code changes, Cloudflare edge integrati
   - Staged and committed 50 production source, configuration, asset, backend migration, and documentation files.
   - Linked and pushed to GitHub remote `https://github.com/aitherjamstudio/RVStrangers.git` on branch `main`.
   - Verified remote repository tracking and synchronization.
+
+---
+
+### [2026-11-19 18:42:00 IST] - GitHub Pages Deployment & Asset Path Fix
+- **Problem**: Deploying to GitHub Pages at `https://aitherjamstudio.github.io/RVStrangers/` resulted in 404/MIME errors due to:
+  1. Default root base URL (`/` instead of `/RVStrangers/`).
+  2. Legacy GitHub Pages build setting serving raw uncompiled root directory (`/main`) rather than built `dist/`.
+  3. Absolute asset paths (`/no bg logo.png`) failing under subpath `/RVStrangers/`.
+- **Solution**:
+  - Configured Vite with `base: '/RVStrangers/'` in [vite.config.ts](file:///D:/RVStrangers/vite.config.ts).
+  - Created [src/vite-env.d.ts](file:///D:/RVStrangers/src/vite-env.d.ts) to provide Vite client typing for `import.meta.env.BASE_URL`.
+  - Updated asset URLs in [index.html](file:///D:/RVStrangers/index.html), [Navbar.tsx](file:///D:/RVStrangers/src/components/Navbar.tsx), and [WelcomeAuthView.tsx](file:///D:/RVStrangers/src/components/WelcomeAuthView.tsx) to resolve dynamically with `${import.meta.env.BASE_URL}` and relative favicon paths.
+  - Updated backend Worker [backend/src/index.ts](file:///D:/RVStrangers/backend/src/index.ts) to handle requests prefixed with `/RVStrangers`, ensuring seamless compatibility whether served via GitHub Pages or the Cloudflare Worker domain (`https://worker.aitherjamstudio.workers.dev`).
+  - Switched GitHub Pages deployment mode to `workflow` via GitHub API.
+  - Authored automated GitHub Actions deployment workflow [.github/workflows/deploy.yml](file:///D:/RVStrangers/.github/workflows/deploy.yml) (`actions/deploy-pages@v4`) triggering on pushes to `main`.
+  - Successfully built production bundle (`tsc && vite build`) into `dist/`.
+

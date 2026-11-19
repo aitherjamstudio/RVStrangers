@@ -159,7 +159,10 @@ export default {
     // 0. STATIC ASSET SERVING (Serve React Web PWA directly from Worker)
     if (env.STATIC_ASSETS && !url.pathname.startsWith('/api/') && url.pathname !== '/health') {
       try {
-        const assetRes = await env.STATIC_ASSETS.fetch(request);
+        const assetReq = url.pathname.startsWith('/RVStrangers')
+          ? new Request(new URL(url.pathname.replace(/^\/RVStrangers/, '') || '/', request.url), request)
+          : request;
+        const assetRes = await env.STATIC_ASSETS.fetch(assetReq);
         if (assetRes.status !== 404) {
           return assetRes;
         }

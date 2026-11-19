@@ -48,7 +48,7 @@ export const WelcomeAuthView: React.FC = () => {
             <div className="flex flex-col items-center space-y-2">
               <div className="relative">
                 <img 
-                  src="/no bg logo.png" 
+                  src={`${import.meta.env.BASE_URL}no bg logo.png`} 
                   alt="Rvstrangers" 
                   className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_0_20px_rgba(192,38,211,0.6)] animate-pulse"
                   onError={(e) => {

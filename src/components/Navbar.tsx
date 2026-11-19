@@ -17,7 +17,7 @@ export const Navbar: React.FC = () => {
         onClick={() => setScreen('landing')}
       >
         <img 
-          src="/no bg logo.png" 
+          src={`${import.meta.env.BASE_URL}no bg logo.png`} 
           alt="Rvstrangers" 
           className="w-9 h-9 rounded-xl object-contain drop-shadow-[0_0_8px_rgba(192,38,211,0.6)]" 
         />
