@@ -329,5 +329,17 @@ All significant architectural decisions, code changes, Cloudflare edge integrati
   - **Bottom Landscape & Pagination**: Rolling dark hill silhouettes with neon backlight horizon glow, two mini cards on the hill crest with radiating energy rays, and 3 pagination dots with the active center dot highlighted in bright pink.
   - **Preserved Functionality**: All authentication callbacks (`loginWithGoogle`, `continueAsGuest`), session handling, and email login/register modal toggles remain completely functional and intact.
 
+---
+
+### [2026-11-19 19:33:00 IST] - Streamlined Native Mobile App Login Layout
+- **User Request**: Remove both the *"Prefer email? Log In • Sign Up"* options and the bottom decorative footer (mini cards, hill SVG, and pagination dots) so the welcome screen presents a clean, non-scrolling native mobile app login appearance.
+- **Changes Applied in [WelcomeAuthView.tsx](file:///D:/RVStrangers/src/components/WelcomeAuthView.tsx)**:
+  - Removed the email login/signup link row from the welcome view.
+  - Removed the bottom hill, mini cards, and 3 pagination dots footer.
+  - Optimized the container vertical layout with `flex-1 flex-col justify-between my-auto` and streamlined height bounds (`min-h-[100dvh] sm:min-h-[760px] sm:max-h-[840px]`), ensuring the screen fits perfectly on mobile viewports without vertical scrolling.
+  - Anchored the primary *"Continue with Google"* and *"Continue as Guest (Quick Play)"* pill buttons prominently at the bottom of the card.
+  - Preserved all Google login and Guest local mode behaviors and session flows.
+
+
 
 
