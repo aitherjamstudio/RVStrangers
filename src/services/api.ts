@@ -49,6 +49,10 @@ class ApiService {
     }
   }
 
+  getBaseUrl(): string {
+    return API_BASE_URL;
+  }
+
   async getGoogleClientId(): Promise<string | null> {
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/google/config`);
@@ -59,13 +63,27 @@ class ApiService {
     }
   }
 
-  // --- Auth: Google OAuth ---
+  // --- Auth: Google OAuth (Web ID Token) ---
   async loginWithGoogle(credential?: string, email?: string, name?: string, avatarUrl?: string): Promise<AuthResponse> {
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/google`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({ credential, email, name, avatarUrl }),
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  // --- Auth: Google OAuth Exchange (Android PKCE Code Exchange) ---
+  async exchangeGoogleAuthCode(code: string, codeVerifier: string, redirectUri: string): Promise<AuthResponse> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/google/exchange`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ code, code_verifier: codeVerifier, redirect_uri: redirectUri }),
       });
       return await res.json();
     } catch (err: any) {

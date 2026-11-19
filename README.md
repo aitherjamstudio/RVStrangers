@@ -67,6 +67,20 @@ npm install
 npm run dev
 ```
 
+### Android APK Testing (Capacitor)
+
+```bash
+# 1. Build web application and sync to native Android project
+npm run cap:build
+
+# 2. Open Android project in Android Studio
+npm run cap:open
+
+# 3. In Android Studio:
+#    Select "Build" -> "Build Bundle(s) / APK(s)" -> "Build APK(s)"
+#    The generated APK will be placed in: android/app/build/outputs/apk/debug/app-debug.apk
+```
+
 ### Backend & Cloudflare Deployment
 
 ```bash

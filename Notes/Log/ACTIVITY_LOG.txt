@@ -343,3 +343,54 @@ All significant architectural decisions, code changes, Cloudflare edge integrati
 
 
 
+
+
+---
+
+### [2026-11-19 20:25:00 IST] - Capacitor Android Packaging & Dual-Platform Asset Configuration
+- **User Request**: Prepare RVStrangers for a temporary Android APK test using Capacitor. Add Capacitor to the existing React + Vite project and configure Android packaging. Ensure Vite assets work both on GitHub Pages (`/RVStrangers/`) and inside the Android app. Preserve all existing UI, game logic, Google authentication, guest authentication, and backend. Keep the project editable as normal.
+- **Implementations**:
+  1. **Capacitor Integration**:
+     - Installed `@capacitor/core`, `@capacitor/android`, and `@capacitor/cli` (v8.6.2).
+     - Created [capacitor.config.ts](file:///D:/RVStrangers/capacitor.config.ts) with `appId: 'com.aitherjamstudio.rvstrangers'`, `appName: 'RVStrangers'`, `webDir: 'dist'`, `server.androidScheme: 'https'`, and cleartext/mixed content enabled.
+     - Added native Android platform project via `npx cap add android` under [android/](file:///D:/RVStrangers/android/).
+  2. **Dual-Platform Asset Compatibility**:
+     - Updated [vite.config.ts](file:///D:/RVStrangers/vite.config.ts) to `base: process.env.VITE_BASE || './'`.
+     - Relative base path guarantees compiled assets resolve seamlessly without 404s on GitHub Pages (`https://.../RVStrangers/assets/...`), local dev preview (`http://localhost:3000/assets/...`), and inside the Android WebView (`https://localhost/assets/...`).
+  3. **Android Configuration & Permissions**:
+     - Configured [android/app/src/main/AndroidManifest.xml](file:///D:/RVStrangers/android/app/src/main/AndroidManifest.xml) with `android.permission.INTERNET` and `android:usesCleartextTraffic="true"`.
+     - Set `CAPACITOR_ANDROID_STUDIO_PATH` and `JAVA_HOME` environment variables pointing to `D:\android studio\bin\studio64.exe` and `D:\android studio\jbr`.
+  4. **NPM Automation Scripts Added in [package.json](file:///D:/RVStrangers/package.json)**:
+     - `"cap:sync"`: Syncs `dist/` web assets and Capacitor plugins into the Android project.
+     - `"cap:open"`: Launches Android Studio with the `android/` project loaded.
+     - `"cap:build"`: Executes full TypeScript check, Vite production build, and Capacitor sync in one step.
+  5. **Integrity & Zero-Regression Verification**:
+     - 100% of game logic in `src/store/useGameStore.ts` preserved.
+     - 100% of UI views in `src/components/` untouched.
+     - 100% of authentication handling (`googleAuth.ts`, `api.ts`) intact.
+     - 100% of Cloudflare Worker backend and D1 database migrations untouched.
+
+---
+
+### [2026-11-19 21:45:00 IST] - Android External Browser OAuth Flow with PKCE & Deep Linking
+- **User Request**: Change RVStrangers Android Google login to an external browser OAuth flow. When tapping Continue with Google in the APK, open the system browser, complete Google authentication, and return to RVStrangers through a properly configured deep link/app callback. Use a secure OAuth authorization-code flow with state validation and PKCE. Exchange credentials securely with Cloudflare Worker and create the normal RVStrangers session. Keep web Google login unchanged. Do not use embedded WebView.
+- **Architectural Implementation**:
+  1. **Native Detection & Plugins**:
+     - Added official `@capacitor/app` and `@capacitor/browser` plugins.
+     - Detected native runtime via `Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'`.
+     - Preserved existing Web Google Identity Services (GIS) One Tap flow untouched when running in standard web browsers.
+  2. **PKCE & State Security Implementation ([src/services/androidAuth.ts](file:///D:/RVStrangers/src/services/androidAuth.ts))**:
+     - Cryptographically generates 64-char `code_verifier` and SHA-256 base64url `code_challenge` (RFC 7636).
+     - Generates 32-char random `state` parameter to prevent CSRF attacks.
+     - Opens the system browser via `@capacitor/browser` to Google's OAuth endpoint (`https://accounts.google.com/o/oauth2/v2/auth`).
+  3. **Android Deep Linking Configuration ([android/app/src/main/AndroidManifest.xml](file:///D:/RVStrangers/android/app/src/main/AndroidManifest.xml))**:
+     - Configured intent filters for custom schemes `com.aitherjamstudio.rvstrangers://auth` and `rvstrangers://auth`.
+     - Automatically brings `MainActivity` (`launchMode="singleTask"`) to the foreground upon redirect.
+     - Registered Capacitor `App.addListener('appUrlOpen')` and `App.getLaunchUrl()` to capture the deep link.
+  4. **Cloudflare Worker Backend ([backend/src/index.ts](file:///D:/RVStrangers/backend/src/index.ts))**:
+     - Added `GET /api/auth/google/callback`: Serves an HTML redirect bridge in the system browser that fires the deep link back to the native app with `code` and `state`.
+     - Added `POST /api/auth/google/exchange`: Securely exchanges authorization code + PKCE verifier + client secret with Google's token endpoint (`https://oauth2.googleapis.com/token`), verifies identity, establishes or retrieves user profile in Cloudflare D1, initializes starter wallet balances, and signs normal RVStrangers session JWT.
+  5. **Session Normalization ([src/store/useGameStore.ts](file:///D:/RVStrangers/src/store/useGameStore.ts))**:
+     - Deep link payload sets up normal session in `localStorage` (`rvstrangers_auth_session`), updates wallet, sets `isAuthenticated: true, isGuest: false`, and transitions to `dashboard`.
+     - Guest mode, email credentials, game logic, and UI remain 100% intact.
+

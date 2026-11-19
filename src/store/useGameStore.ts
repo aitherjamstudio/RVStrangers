@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { ScreenType, AuthUser, AuthSession } from '../types';
-import { api } from '../services/api';
+import { api, AuthResponse } from '../services/api';
 import { googleAuthService } from '../services/googleAuth';
+import { isNativeAndroid, startAndroidGoogleOAuth, initAndroidAuth } from '../services/androidAuth';
 
 const SESSION_STORAGE_KEY = 'rvstrangers_auth_session';
 
@@ -35,6 +36,7 @@ interface GameStore {
   token: string | null;
   isAuthenticated: boolean;
   isGuest: boolean;
+  applyAuthSession: (res: AuthResponse) => void;
   initSessionFromD1: () => Promise<void>;
   loginWithGoogle: (credential?: string, email?: string, name?: string) => Promise<void>;
   loginWithCredentials: (email: string, pass: string) => Promise<boolean>;
@@ -87,10 +89,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // Synchronize Live D1 Session on App Mount
   initSessionFromD1: async () => {
-    // Pre-initialize Google Identity Services once in the background
-    googleAuthService.ensureInitialized((token) => {
-      get().loginWithGoogle(token);
-    }).catch(() => {});
+    // If native Android, initialize external browser OAuth deep link handler
+    if (isNativeAndroid()) {
+      initAndroidAuth(
+        (authRes) => get().applyAuthSession(authRes),
+        (errMsg) => get().showToast(errMsg)
+      );
+    } else {
+      // Pre-initialize Google Identity Services once in the background for Web
+      googleAuthService.ensureInitialized((token) => {
+        get().loginWithGoogle(token);
+      }).catch(() => {});
+    }
 
     const currentToken = get().token;
     if (!currentToken) return;
@@ -178,18 +188,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isAuthenticated: initialSession ? !initialSession.user.isGuest : false,
   isGuest: initialSession ? initialSession.user.isGuest : false,
 
-  loginWithGoogle: async (credential) => {
-    if (!credential) {
-      const result = await googleAuthService.promptSignIn((token) => {
-        get().loginWithGoogle(token);
-      });
-      if (!result.success && result.error) {
-        get().showToast(result.error);
-      }
-      return;
-    }
-    get().showToast('Connecting with Google...');
-    const res = await api.loginWithGoogle(credential);
+  applyAuthSession: (res: AuthResponse) => {
     if (res && res.success && res.user && res.token) {
       const session: AuthSession = {
         token: res.token,
@@ -219,6 +218,33 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else {
       get().showToast(res?.error || 'Google login failed.');
     }
+  },
+
+  loginWithGoogle: async (credential) => {
+    if (!credential) {
+      // On Android APK, use external system browser OAuth with PKCE and deep links
+      if (isNativeAndroid()) {
+        get().showToast('Opening browser for Google sign-in...');
+        const result = await startAndroidGoogleOAuth();
+        if (!result.success && result.error) {
+          get().showToast(result.error);
+        }
+        return;
+      }
+
+      // On Web, use Google Identity Services (GIS) One Tap / popup
+      const result = await googleAuthService.promptSignIn((token) => {
+        get().loginWithGoogle(token);
+      });
+      if (!result.success && result.error) {
+        get().showToast(result.error);
+      }
+      return;
+    }
+
+    get().showToast('Connecting with Google...');
+    const res = await api.loginWithGoogle(credential);
+    get().applyAuthSession(res);
   },
 
   loginWithCredentials: async (email, pass) => {

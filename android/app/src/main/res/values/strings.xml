@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RVStrangers</string>
+    <string name="title_activity_main">RVStrangers</string>
+    <string name="package_name">com.aitherjamstudio.rvstrangers</string>
+    <string name="custom_url_scheme">com.aitherjamstudio.rvstrangers</string>
+</resources>

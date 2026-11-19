@@ -143,6 +143,67 @@ async function authenticateRequest(request: Request, env: Env): Promise<JWTPaylo
   return verifyJWT(token, secret);
 }
 
+// Helper: Securely find or create profile in D1 and issue session JWT
+async function handleGoogleUserSession(googleUser: any, env: Env, secret: string): Promise<Response> {
+  const googleId = googleUser.sub;
+  const userEmail = (googleUser.email || '').toLowerCase();
+  const displayName = googleUser.name || userEmail.split('@')[0] || 'Player';
+  const avatarUrl = googleUser.picture;
+
+  // Check if user exists in D1
+  let user: any = await env.DB.prepare(
+    'SELECT * FROM profiles WHERE (google_id = ? AND google_id IS NOT NULL) OR (email = ? AND email IS NOT NULL)'
+  ).bind(googleId || '', userEmail || '').first();
+
+  const userId = user ? user.id : 'usr_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+  const handle = user ? user.username : userEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  const finalAvatar = user?.avatar_url || avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${handle}`;
+
+  if (!user) {
+    // Atomic creation: profile + starter wallet in D1
+    await env.DB.batch([
+      env.DB.prepare(
+        'INSERT INTO profiles (id, google_id, email, username, display_name, avatar_url, is_guest) VALUES (?, ?, ?, ?, ?, ?, 0)'
+      ).bind(userId, googleId, userEmail || null, handle, displayName, finalAvatar),
+      env.DB.prepare(
+        'INSERT INTO wallet_balances (user_id, coins, diamonds) VALUES (?, 0, 0)'
+      ).bind(userId),
+    ]);
+
+    user = {
+      id: userId,
+      google_id: googleId,
+      email: userEmail,
+      username: handle,
+      display_name: displayName,
+      avatar_url: finalAvatar,
+      is_guest: 0,
+    };
+  }
+
+  // Fetch wallet balances
+  const wallet: any = await env.DB.prepare('SELECT coins, diamonds FROM wallet_balances WHERE user_id = ?').bind(user.id).first() || { coins: 0, diamonds: 0 };
+
+  const token = await signJWT({ sub: user.id, username: user.username, is_guest: false }, secret);
+
+  return jsonResponse({
+    success: true,
+    token,
+    user: {
+      id: user.id,
+      name: user.display_name,
+      email: user.email,
+      handle: user.username,
+      avatar: user.avatar_url,
+      isGuest: false,
+    },
+    wallet: {
+      coins: wallet.coins,
+      diamonds: wallet.diamonds,
+    }
+  });
+}
+
 // --------------------------------------------------------
 // Main Worker Fetch Handler
 // --------------------------------------------------------
@@ -197,11 +258,12 @@ export default {
       // AUTHENTICATION ROUTES
       // ========================================================
 
-      // POST /api/auth/google
+      // GET /api/auth/google/config
       if (url.pathname === '/api/auth/google/config' && method === 'GET') {
         return jsonResponse({ clientId: env.GOOGLE_CLIENT_ID || null });
       }
 
+      // POST /api/auth/google (Web One Tap / GIS ID Token verification)
       if (url.pathname === '/api/auth/google' && method === 'POST') {
         const body: any = await request.json().catch(() => ({}));
         const { credential } = body;
@@ -214,63 +276,201 @@ export default {
         if (googleUser.aud !== env.GOOGLE_CLIENT_ID || googleUser.email_verified !== 'true' || !googleUser.sub || !googleUser.email) {
           return errorResponse('Google sign-in verification failed.', 401);
         }
-        const googleId = googleUser.sub;
-        const userEmail = googleUser.email.toLowerCase();
-        const displayName = googleUser.name || userEmail.split('@')[0];
-        const avatarUrl = googleUser.picture;
 
-        // Check if user exists in D1
-        let user: any = await env.DB.prepare(
-          'SELECT * FROM profiles WHERE (google_id = ? AND google_id IS NOT NULL) OR (email = ? AND email IS NOT NULL)'
-        ).bind(googleId || '', userEmail || '').first();
+        return handleGoogleUserSession(googleUser, env, secret);
+      }
 
-        const userId = user ? user.id : 'usr_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16);
-        const handle = user ? user.username : userEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
-        const finalAvatar = user?.avatar_url || avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${handle}`;
+      // GET /api/auth/google/callback (Android External Browser OAuth Redirect Bridge)
+      if (url.pathname === '/api/auth/google/callback' && method === 'GET') {
+        const code = url.searchParams.get('code');
+        const state = url.searchParams.get('state') || '';
+        const error = url.searchParams.get('error');
 
-        if (!user) {
-          // Atomic creation: profile + starter wallet in D1
-          await env.DB.batch([
-            env.DB.prepare(
-              'INSERT INTO profiles (id, google_id, email, username, display_name, avatar_url, is_guest) VALUES (?, ?, ?, ?, ?, ?, 0)'
-            ).bind(userId, googleId, userEmail || null, handle, displayName, finalAvatar),
-            env.DB.prepare(
-              'INSERT INTO wallet_balances (user_id, coins, diamonds) VALUES (?, 0, 0)'
-            ).bind(userId),
-          ]);
+        const appScheme = 'com.aitherjamstudio.rvstrangers://auth';
+        const fallbackScheme = 'rvstrangers://auth';
 
-          user = {
-            id: userId,
-            google_id: googleId,
-            email: userEmail,
-            username: handle,
-            display_name: displayName,
-            avatar_url: finalAvatar,
-            is_guest: 0,
-          };
+        const queryParams = new URLSearchParams();
+        if (error) queryParams.set('error', error);
+        if (code) queryParams.set('code', code);
+        if (state) queryParams.set('state', state);
+
+        const deepLink = `${appScheme}?${queryParams.toString()}`;
+        const fallbackLink = `${fallbackScheme}?${queryParams.toString()}`;
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RVStrangers - Signing In</title>
+  <style>
+    body {
+      background-color: #0b0114;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Comfortaa', 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .card {
+      background: rgba(27, 4, 43, 0.9);
+      border: 1px solid rgba(217, 70, 239, 0.4);
+      box-shadow: 0 0 35px rgba(236, 72, 153, 0.4);
+      border-radius: 28px;
+      padding: 36px 28px;
+      max-width: 380px;
+      width: 100%;
+    }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid rgba(217, 70, 239, 0.2);
+      border-top-color: #f43f9e;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    h2 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+    }
+    p {
+      color: rgba(233, 213, 255, 0.85);
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 0 24px;
+    }
+    .btn {
+      display: inline-block;
+      width: 100%;
+      padding: 14px 20px;
+      background: #ffffff;
+      color: #140224;
+      font-weight: 700;
+      font-size: 15px;
+      border-radius: 9999px;
+      text-decoration: none;
+      box-shadow: 0 0 25px rgba(236, 72, 153, 0.5);
+      box-sizing: border-box;
+      transition: transform 0.15s ease;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h2>${error ? 'Authentication Error' : 'Returning to RVStrangers'}</h2>
+    <p>${error ? error : 'Authentication complete. Returning you to the game...'}</p>
+    <a href="${deepLink}" class="btn" id="openBtn">Open RVStrangers</a>
+  </div>
+  <script>
+    const deepLink = ${JSON.stringify(deepLink)};
+    const fallbackLink = ${JSON.stringify(fallbackLink)};
+    try {
+      window.location.replace(deepLink);
+    } catch (e) {
+      window.location.href = deepLink;
+    }
+    setTimeout(() => {
+      try {
+        window.location.href = fallbackLink;
+      } catch (e) {}
+    }, 1000);
+  </script>
+</body>
+</html>`;
+
+        return new Response(html, {
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            ...corsHeaders,
+          },
+        });
+      }
+
+      // POST /api/auth/google/exchange (Android APK Authorization Code + PKCE Verifier Exchange)
+      if (url.pathname === '/api/auth/google/exchange' && method === 'POST') {
+        const body: any = await request.json().catch(() => ({}));
+        const { code, code_verifier, redirect_uri } = body;
+
+        if (!code || !code_verifier || !redirect_uri) {
+          return errorResponse('Missing code, code_verifier, or redirect_uri for OAuth exchange.', 400);
+        }
+        if (!env.GOOGLE_CLIENT_ID) {
+          return errorResponse('Google sign-in is not configured.', 503);
         }
 
-        // Fetch wallet balances
-        const wallet: any = await env.DB.prepare('SELECT coins, diamonds FROM wallet_balances WHERE user_id = ?').bind(user.id).first() || { coins: 0, diamonds: 0 };
-
-        const token = await signJWT({ sub: user.id, username: user.username, is_guest: false }, secret);
-
-        return jsonResponse({
-          success: true,
-          token,
-          user: {
-            id: user.id,
-            name: user.display_name,
-            email: user.email,
-            handle: user.username,
-            avatar: user.avatar_url,
-            isGuest: false,
-          },
-          wallet: {
-            coins: wallet.coins,
-            diamonds: wallet.diamonds,
-          }
+        const tokenParams = new URLSearchParams({
+          client_id: env.GOOGLE_CLIENT_ID,
+          code,
+          code_verifier,
+          grant_type: 'authorization_code',
+          redirect_uri,
         });
+        if (env.GOOGLE_CLIENT_SECRET) {
+          tokenParams.set('client_secret', env.GOOGLE_CLIENT_SECRET);
+        }
+
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: tokenParams.toString(),
+        });
+
+        if (!tokenRes.ok) {
+          const errData: any = await tokenRes.json().catch(() => ({}));
+          return errorResponse(errData.error_description || errData.error || 'Failed to exchange authorization code with Google.', 401);
+        }
+
+        const tokenData: any = await tokenRes.json();
+        const idToken = tokenData.id_token;
+
+        let googleUser: any = null;
+
+        if (idToken) {
+          const verification = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+          if (verification.ok) {
+            const parsed: any = await verification.json();
+            if (parsed.aud === env.GOOGLE_CLIENT_ID && parsed.email_verified === 'true' && parsed.sub && parsed.email) {
+              googleUser = parsed;
+            }
+          }
+        }
+
+        // Fallback: If id_token not verified or missing, use access_token with userinfo endpoint
+        if (!googleUser && tokenData.access_token) {
+          const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          });
+          if (userinfoRes.ok) {
+            const parsed: any = await userinfoRes.json();
+            if (parsed.sub && parsed.email) {
+              googleUser = parsed;
+            }
+          }
+        }
+
+        if (!googleUser) {
+          return errorResponse('Google OAuth token verification failed.', 401);
+        }
+
+        return handleGoogleUserSession(googleUser, env, secret);
       }
 
       // POST /api/auth/register
