@@ -30,7 +30,7 @@ export const App: React.FC = () => {
         {currentScreen !== 'welcome' && <TopNav />}
 
         {/* Active Screen Display (Routed by state) */}
-        <main className="flex-1 w-full">
+        <main className={`flex-1 w-full ${currentScreen === 'welcome' ? 'flex flex-col items-center justify-center' : ''}`}>
           {currentScreen === 'welcome' && <WelcomeAuthView />}
           {currentScreen === 'dashboard' && <DashboardView />}
           {currentScreen === 'game' && <GameTable />}

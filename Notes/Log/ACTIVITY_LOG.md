@@ -313,4 +313,21 @@ All significant architectural decisions, code changes, Cloudflare edge integrati
     - Retained all existing guest sessions, session persistence, and UI flows without modification.
   - Verified clean build (`tsc && vite build`) and pushed to production.
 
+---
+
+### [2026-11-19 19:24:00 IST] - Welcome & Login Screen Visual Redesign
+- **User Request**: Redesign the RVStrangers Welcome/Login onboarding screen to strictly mirror the reference design provided in the user's mockup image, while preserving 100% of underlying authentication logic, guest login, session persistence, and navigation.
+- **Visual Enhancements Implemented in [WelcomeAuthView.tsx](file:///D:/RVStrangers/src/components/WelcomeAuthView.tsx)**:
+  - **Background & Ambient Aurora**: Deep cosmic violet gradient background with top-left neon pink/magenta wave and ambient aurora lighting.
+  - **Floating Angled Cards**: Two semi-transparent glowing playing cards floating in the upper corners (top-left heart card tilted -26°, top-right sparkle card tilted +26°).
+  - **Central App Icon Badge**: Squircle icon badge with neon fuchsia outer blur glow, dark glass gradient base, overlapping tilted purple and magenta playing cards with a 4-point golden star on the front card.
+  - **Typography & Branding**: Italicized `RV` (white) and `Strangers` (vibrant pink/magenta gradient) with the subtitle *"Built for meaningful connections."* and a delicate glowing crescent accent line below.
+  - **Feature Pillars**: 3 feature columns (*Meet New People*, *Play Card Games*, *Chat & Connect*) with rounded translucent icon badges and subtle vertical divider lines.
+  - **Primary Action Buttons**:
+    - **"Continue with Google"**: Full-width white pill button with intense neon magenta glow, Google multicolored 'G' logo, and right chevron arrow.
+    - **"Continue as Guest"**: Dark glass pill button with neon magenta border, user silhouette icon, and purple "Quick Play" pill badge.
+  - **Bottom Landscape & Pagination**: Rolling dark hill silhouettes with neon backlight horizon glow, two mini cards on the hill crest with radiating energy rays, and 3 pagination dots with the active center dot highlighted in bright pink.
+  - **Preserved Functionality**: All authentication callbacks (`loginWithGoogle`, `continueAsGuest`), session handling, and email login/register modal toggles remain completely functional and intact.
+
+
 
