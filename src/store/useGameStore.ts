@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { ScreenType, AuthUser, AuthSession } from '../types';
 import { api } from '../services/api';
+import { googleAuthService } from '../services/googleAuth';
 
 const SESSION_STORAGE_KEY = 'rvstrangers_auth_session';
 
@@ -86,6 +87,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // Synchronize Live D1 Session on App Mount
   initSessionFromD1: async () => {
+    // Pre-initialize Google Identity Services once in the background
+    googleAuthService.ensureInitialized((token) => {
+      get().loginWithGoogle(token);
+    }).catch(() => {});
+
     const currentToken = get().token;
     if (!currentToken) return;
 
@@ -174,29 +180,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   loginWithGoogle: async (credential) => {
     if (!credential) {
-      const clientId = await api.getGoogleClientId();
-      if (!clientId) {
-        get().showToast('Google sign-in is not configured yet. Use email sign-in instead.');
-        return;
-      }
-      const startGoogle = () => {
-        const google = (window as any).google;
-        if (!google?.accounts?.id) {
-          get().showToast('Google sign-in could not be loaded. Please try again.');
-          return;
-        }
-        google.accounts.id.initialize({ client_id: clientId, callback: (response: { credential?: string }) => get().loginWithGoogle(response.credential) });
-        google.accounts.id.prompt();
-      };
-      if ((window as any).google?.accounts?.id) {
-        startGoogle();
-      } else {
-        const script = document.createElement('script');
-        script.src = 'https://accounts.google.com/gsi/client';
-        script.async = true;
-        script.onload = startGoogle;
-        script.onerror = () => get().showToast('Google sign-in could not be loaded. Please try again.');
-        document.head.appendChild(script);
+      const result = await googleAuthService.promptSignIn((token) => {
+        get().loginWithGoogle(token);
+      });
+      if (!result.success && result.error) {
+        get().showToast(result.error);
       }
       return;
     }

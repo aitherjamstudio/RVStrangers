@@ -292,3 +292,25 @@ All significant architectural decisions, code changes, Cloudflare edge integrati
   - Authored automated GitHub Actions deployment workflow [.github/workflows/deploy.yml](file:///D:/RVStrangers/.github/workflows/deploy.yml) (`actions/deploy-pages@v4`) triggering on pushes to `main`.
   - Successfully built production bundle (`tsc && vite build`) into `dist/`.
 
+---
+
+### [2026-11-19 19:00:00 IST] - Google Identity Services (GIS) Singleton Architecture
+- **Problem**: In `useGameStore.ts`, `google.accounts.id.initialize()` was being called unconditionally every time a user clicked "Continue with Google" without a credential, and across re-renders/component mounts. This caused Google GIS to log warnings and errors indicating multiple initializations of the same client ID.
+- **Root Cause**:
+  1. No check for existing GIS initialization on `window.google.accounts.id`.
+  2. Concurrent or repeated clicks re-appended `<script>` tags and called `initialize()` anew.
+  3. Lack of a dedicated singleton service to manage the GIS lifecycle.
+- **Solution**:
+  - Implemented a dedicated singleton manager in [src/services/googleAuth.ts](file:///D:/RVStrangers/src/services/googleAuth.ts):
+    - Guarantees the Google Identity Services script (`gsi/client`) is injected at most once.
+    - Caches the backend client ID resolution (`/api/auth/google/config`).
+    - Enforces singleton initialization (`window.__rvstrangers_gis_initialized`) so `google.accounts.id.initialize()` executes exactly once per session.
+    - Dynamically delegates auth tokens to the active store via `window.__rvstrangers_gis_callback`.
+    - Handles prompt invocation (`google.accounts.id.prompt()`) cleanly without re-calling `initialize()`.
+  - Updated [src/store/useGameStore.ts](file:///D:/RVStrangers/src/store/useGameStore.ts):
+    - Pre-initializes Google GIS in `initSessionFromD1` in the background on app load.
+    - Simplified `loginWithGoogle` to call `googleAuthService.promptSignIn()`.
+    - Retained all existing guest sessions, session persistence, and UI flows without modification.
+  - Verified clean build (`tsc && vite build`) and pushed to production.
+
+
