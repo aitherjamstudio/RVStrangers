@@ -1,0 +1,30 @@
+name = "worker"
+main = "src/index.ts"
+compatibility_date = "2024-11-18"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+GOOGLE_CLIENT_ID = "1014039849274-luacc9gsekob618o5me0n9ntpnq3c1c1.apps.googleusercontent.com"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "rvstrangers-db"
+database_id = "de88b163-2b55-4586-b6cf-37b6219c6c1f"
+
+[[d1_databases]]
+binding = "CARDS_DB"
+database_name = "rvstrangers-cards"
+database_id = "00a50fe5-853b-4cb6-bc97-f6c6cd6b38ab"
+
+[[d1_databases]]
+binding = "MESSAGES_DB"
+database_name = "rvstrangers-messages"
+database_id = "37a90af8-3000-42e1-aaf5-d5fed1ba712c"
+
+[assets]
+directory = "../dist"
+binding = "STATIC_ASSETS"
+
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "rvstrangers-assets"

@@ -1,0 +1,7 @@
+Site name: Rvstrangers
+Font: Comfortaa
+IP from powershell:
+cd "D:\RVStrangers"
+npm run dev -- --host 0.0.0.0
+
+ipconfig
