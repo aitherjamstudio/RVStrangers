@@ -899,7 +899,7 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
 
     <!-- Action Buttons -->
     <div class="actions-box">
-      <!-- Continue to Google -->
+      <!-- Continue with Google -->
       <a href="${googleAuthUrl}" class="btn-google">
         <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
           <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24">
@@ -910,7 +910,7 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
           </svg>
         </div>
         <span style="flex: 1; text-align: center; color: #140224; font-weight: 800; font-size: 15px;">
-          Continue to Google
+          Continue with Google
         </span>
         <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0;">
           <svg style="width: 20px; height: 20px; stroke: #140224; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round;" viewBox="0 0 24 24">
