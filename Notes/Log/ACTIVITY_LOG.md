@@ -425,3 +425,24 @@ All significant architectural decisions, code changes, Cloudflare edge integrati
      - On Android: Opens system browser via `@capacitor/browser`, receives deep link callback via `@capacitor/app`, auto-closes browser, calls `exchangeSessionCode`, and applies session.
      - On Web: Redirects to hosted portal, receives `exchange_code` on return, cleans URL parameters immediately via `window.history.replaceState`, calls `exchangeSessionCode`, and applies session.
      - Preserves guest mode, game logic, and account balances 100%.
+
+
+---
+
+### [2026-11-21 00:25:00 IST] - Button Copy & Layout Harmonization (App vs Worker Portal)
+- **User Request**: 
+  - Primary page (React app welcome view): Update buttons to show **Continue to Login** and **Continue as a guest**.
+  - Worker handling page (Cloudflare Worker hosted portal): Remove **Continue as a guest** button and show **Continue to Google** only for now.
+- **Implementations**:
+  1. **Primary Welcome View ([src/components/WelcomeAuthView.tsx](file:///D:/RVStrangers/src/components/WelcomeAuthView.tsx))**:
+     - Updated primary action to **Continue to Login** with `LogIn` icon and chevron navigation arrow.
+     - Updated secondary action to **Continue as a guest** with `User` icon and Quick Play tag.
+     - Preserves all guest entry and hosted login portal routing.
+  2. **Worker Hosted Portal ([backend/src/index.ts](file:///D:/RVStrangers/backend/src/index.ts))**:
+     - Updated button label to **Continue to Google** with Google colored G icon and direct OAuth trigger.
+     - Removed the secondary **Continue as Guest** button from the hosted portal for a single, focused Google OAuth flow.
+     - Removed unused CSS rules (`.btn-guest`, `.quick-play-pill`).
+  3. **Build & Sync**:
+     - Built React frontend via `npm run build` (verified zero errors).
+     - Synced Android Capacitor assets via `npx cap sync android`.
+     - Deployed Cloudflare Worker (Version ID: `f112aa04-7c5c-441b-a12d-9377d86ae6b6`).

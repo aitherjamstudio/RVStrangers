@@ -474,7 +474,7 @@ function renderSecurityErrorHtml(title: string, message: string): string {
 </html>`;
 }
 
-function renderHostedLoginHtml(googleAuthUrl: string, guestUrl: string): string {
+function renderHostedLoginHtml(googleAuthUrl: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -791,42 +791,6 @@ function renderHostedLoginHtml(googleAuthUrl: string, guestUrl: string): string 
     .btn-google:active {
       transform: scale(0.98);
     }
-    .btn-guest {
-      width: 100%;
-      height: 56px;
-      padding: 0 20px;
-      border-radius: 9999px;
-      background: rgba(24, 4, 41, 0.85);
-      border: 2px solid rgba(217, 70, 239, 0.8);
-      color: #FFFFFF;
-      font-weight: 800;
-      font-size: 15px;
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 0 20px rgba(217, 70, 239, 0.3);
-      backdrop-filter: blur(8px);
-      transition: all 0.2s ease;
-    }
-    .btn-guest:hover {
-      border-color: #D946EF;
-      box-shadow: 0 0 30px rgba(217, 70, 239, 0.5);
-      transform: translateY(-1px);
-    }
-    .btn-guest:active {
-      transform: scale(0.98);
-    }
-    .quick-play-pill {
-      padding: 5px 12px;
-      border-radius: 9999px;
-      background: #8E1A8B;
-      color: #F5D0FE;
-      font-size: 11.5px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
-      border: 1px solid rgba(244, 114, 182, 0.35);
-    }
     /* Pagination Dots */
     .dots-row {
       display: flex;
@@ -935,7 +899,7 @@ function renderHostedLoginHtml(googleAuthUrl: string, guestUrl: string): string 
 
     <!-- Action Buttons -->
     <div class="actions-box">
-      <!-- Continue with Google -->
+      <!-- Continue to Google -->
       <a href="${googleAuthUrl}" class="btn-google">
         <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
           <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24">
@@ -946,28 +910,12 @@ function renderHostedLoginHtml(googleAuthUrl: string, guestUrl: string): string 
           </svg>
         </div>
         <span style="flex: 1; text-align: center; color: #140224; font-weight: 800; font-size: 15px;">
-          Continue with Google
+          Continue to Google
         </span>
         <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0;">
           <svg style="width: 20px; height: 20px; stroke: #140224; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round;" viewBox="0 0 24 24">
             <polyline points="9 18 15 12 9 6" />
           </svg>
-        </div>
-      </a>
-
-      <!-- Continue as Guest -->
-      <a href="${guestUrl}" class="btn-guest">
-        <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-          <svg style="width: 20px; height: 20px; stroke: #E9D5FF; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round;" viewBox="0 0 24 24">
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        </div>
-        <span style="flex: 1; text-align: center; color: #FFFFFF; font-weight: 800; font-size: 15px;">
-          Continue as Guest
-        </span>
-        <div style="flex-shrink: 0;">
-          <span class="quick-play-pill">Quick Play</span>
         </div>
       </a>
     </div>
@@ -1093,18 +1041,7 @@ export default {
         googleAuthUrl.searchParams.set('state', signedState);
         googleAuthUrl.searchParams.set('prompt', 'select_account');
 
-        // Guest Return URL
-        let guestUrl = redirectUri;
-        try {
-          const parsedGuest = new URL(redirectUri);
-          parsedGuest.searchParams.set('guest', '1');
-          if (clientState) parsedGuest.searchParams.set('state', clientState);
-          guestUrl = parsedGuest.toString();
-        } catch {
-          guestUrl = `${redirectUri}${redirectUri.includes('?') ? '&' : '?'}guest=1${clientState ? '&state=' + encodeURIComponent(clientState) : ''}`;
-        }
-
-        const html = renderHostedLoginHtml(googleAuthUrl.toString(), guestUrl);
+        const html = renderHostedLoginHtml(googleAuthUrl.toString());
         return new Response(html, {
           headers: {
             'Content-Type': 'text/html; charset=utf-8',

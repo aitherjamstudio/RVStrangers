@@ -165,29 +165,24 @@ export const WelcomeAuthView: React.FC = () => {
             {/* Bottom Action Buttons (Clean Mobile App Style) */}
             <div className="w-full max-w-[360px] space-y-3.5 z-20 pb-2 sm:pb-3">
               
-              {/* 1. Continue with Google */}
+              {/* 1. Continue to Login */}
               <button
                 type="button"
                 onClick={() => loginWithGoogle()}
                 className="w-full h-14 px-6 rounded-full bg-white text-[#150325] font-bold text-sm sm:text-base flex items-center justify-between shadow-[0_0_35px_rgba(236,72,153,0.5)] hover:shadow-[0_0_45px_rgba(236,72,153,0.7)] hover:bg-slate-50 active:scale-[0.98] transition-all duration-200 group border border-white"
               >
                 <div className="w-6 h-6 flex items-center justify-center shrink-0">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.15z"/>
-                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.36 7.33 24 12 24z"/>
-                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.24C.45 8.15 0 9.92 0 12s.45 3.85 1.24 5.42l4.04-3.15z"/>
-                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-                  </svg>
+                  <LogIn className="w-5 h-5 text-[#140224]" />
                 </div>
                 <span className="flex-1 text-center font-bold text-[#140224] text-sm sm:text-base">
-                  Continue with Google
+                  Continue to Login
                 </span>
                 <div className="w-6 h-6 flex items-center justify-end shrink-0">
                   <ChevronRight className="w-5 h-5 text-[#140224] group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </button>
 
-              {/* 2. Continue as Guest */}
+              {/* 2. Continue as a guest */}
               <button
                 type="button"
                 onClick={continueAsGuest}
@@ -197,7 +192,7 @@ export const WelcomeAuthView: React.FC = () => {
                   <User className="w-5 h-5 text-purple-200 group-hover:text-white transition-colors" />
                 </div>
                 <span className="flex-1 text-center font-bold text-white text-sm sm:text-base">
-                  Continue as Guest
+                  Continue as a guest
                 </span>
                 <div className="shrink-0">
                   <span className="px-3.5 py-1.5 rounded-full bg-[#8E1A8B] text-purple-100 text-xs font-semibold tracking-wide border border-pink-400/30">
