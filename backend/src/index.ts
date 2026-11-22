@@ -1738,6 +1738,7 @@ export default {
             object.writeHttpMetadata(headers);
             headers.set('etag', object.httpEtag);
             headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+            Object.entries(corsHeaders).forEach(([k, v]) => headers.set(k, v));
             return new Response(object.body, { headers });
           }
         }

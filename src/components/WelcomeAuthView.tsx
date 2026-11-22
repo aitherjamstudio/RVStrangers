@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { LogIn, ArrowRight, X, Sparkles, User, ChevronRight } from 'lucide-react';
+import { DeckBox3D } from './DeckBox3D';
 
 export const WelcomeAuthView: React.FC = () => {
   const { 
@@ -67,25 +68,15 @@ export const WelcomeAuthView: React.FC = () => {
               {/* App Icon / Central Hero Badge */}
               <div className="relative w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center mt-2">
                 {/* Intense Outer Neon Blur Glow */}
-                <div className="absolute inset-0 rounded-[32px] bg-gradient-to-tr from-[#FF2E93] via-[#D946EF] to-[#8B5CF6] blur-xl opacity-80 animate-pulse" />
+                <div className="absolute inset-0 rounded-[32px] bg-gradient-to-tr from-[#FF2E93] via-[#D946EF] to-[#8B5CF6] blur-xl opacity-80 animate-pulse pointer-events-none" />
                 
                 {/* Dark Glass Squircle Icon Container */}
                 <div className="relative w-full h-full rounded-[28px] sm:rounded-[30px] bg-gradient-to-b from-[#2B0B47]/95 via-[#18042B]/95 to-[#120220] border-2 border-fuchsia-400/60 shadow-[0_0_35px_rgba(236,72,153,0.6),inset_0_1px_1px_rgba(255,255,255,0.3)] flex items-center justify-center overflow-hidden backdrop-blur-2xl">
-                  
                   {/* Glass Top Highlight */}
                   <div className="absolute -top-10 -left-10 w-24 h-24 rounded-full bg-white/15 blur-md pointer-events-none" />
 
-                  {/* Back Playing Card (Angled Left, Purple Gradient) */}
-                  <div className="absolute w-[50px] h-[72px] sm:w-[54px] sm:h-[76px] rounded-xl bg-gradient-to-br from-[#8A2BE2] via-[#9B30FF] to-[#6A0DAD] border border-fuchsia-300/50 shadow-[0_0_14px_rgba(168,85,247,0.6)] -rotate-[16deg] -translate-x-2.5 -translate-y-0.5" />
-
-                  {/* Front Playing Card (Angled Right with Golden Star) */}
-                  <div className="absolute w-[50px] h-[72px] sm:w-[54px] sm:h-[76px] rounded-xl bg-gradient-to-br from-[#E026D8] via-[#FF2E93] to-[#C026D3] border-2 border-pink-200/80 shadow-[0_0_20px_rgba(236,72,153,0.8)] rotate-[15deg] translate-x-2.5 translate-y-0.5 flex items-center justify-center">
-                    {/* Golden 4-point star */}
-                    <svg viewBox="0 0 24 24" className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.95)]" fill="currentColor">
-                      <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
-                    </svg>
-                  </div>
-
+                  {/* 3D Interactive Card Deck Box */}
+                  <DeckBox3D className="w-full h-full" />
                 </div>
               </div>
 
