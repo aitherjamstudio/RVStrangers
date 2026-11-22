@@ -38,15 +38,15 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
     const resolvedTextureUrl = textureUrl || defaultLocalTexturePath;
 
     // Dimensions
-    let width = container.clientWidth || 140;
-    let height = container.clientHeight || 140;
+    let width = container.clientWidth || 180;
+    let height = container.clientHeight || 240;
 
     // Scene & Camera
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(38, width / height, 0.05, 10);
+    const camera = new THREE.PerspectiveCamera(36, width / height, 0.05, 10);
     camera.position.set(0, 0, 0.24);
 
-    // Renderer
+    // Renderer with transparency for natural glow blending
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -57,38 +57,46 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(renderer.domElement);
 
-    // Lighting Setup tuned for Cyberpunk / Purple Neon Card Game aesthetic
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
+    // ========================================================
+    // LIGHTING: Tuned for vibrant Cyberpunk Neon Rim effect
+    // ========================================================
+    // Soft ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.7);
     scene.add(ambientLight);
 
-    // Key Light (crisp front illumination to showcase artwork and text)
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.6);
-    keyLight.position.set(0.6, 1.8, 2.4);
+    // Crisp Key Light from front-left (illuminates front artwork & text cleanly)
+    const keyLight = new THREE.DirectionalLight(0xffffff, 3.2);
+    keyLight.position.set(-0.8, 1.8, 2.5);
     scene.add(keyLight);
 
-    // Rim Accent Light (vibrant magenta edge highlight on spine and corners)
-    const rimLight = new THREE.DirectionalLight(0xf43f8e, 2.2);
-    rimLight.position.set(-2.0, 1.2, -1.0);
-    scene.add(rimLight);
+    // Intense Hot-Pink Right Rim Light (gives the spine that signature glowing neon edge)
+    const rightRimLight = new THREE.DirectionalLight(0xff2e93, 4.6);
+    rightRimLight.position.set(2.5, 1.0, -0.6);
+    scene.add(rightRimLight);
 
-    // Fill Light (electric purple from bottom-left)
-    const fillLight = new THREE.DirectionalLight(0xa855f7, 1.4);
-    fillLight.position.set(-1.0, -1.8, 1.2);
-    scene.add(fillLight);
+    // Left Edge Rim Light (fuchsia accent grazing the left boundary)
+    const leftRimLight = new THREE.DirectionalLight(0xd946ef, 2.6);
+    leftRimLight.position.set(-2.5, 0.8, -0.6);
+    scene.add(leftRimLight);
 
-    // Top Rim Light (golden-pink shimmer on the lid)
-    const topLight = new THREE.DirectionalLight(0xf472b6, 1.6);
-    topLight.position.set(0, 2.5, 0.5);
+    // Top Rim Light (bright pink highlight along top lid edge)
+    const topLight = new THREE.DirectionalLight(0xf43f8e, 3.2);
+    topLight.position.set(0, 3.0, 0.1);
     scene.add(topLight);
+
+    // Soft Purple Bottom Bounce Fill
+    const bottomFill = new THREE.DirectionalLight(0xa855f7, 1.3);
+    bottomFill.position.set(0, -2.0, 1.0);
+    scene.add(bottomFill);
 
     // Root Pivot Group for transformations
     const pivotGroup = new THREE.Group();
     scene.add(pivotGroup);
 
-    // Default hero orientation:
-    // Front face clearly visible with slight 3/4 turn to reveal spine and top lid
-    const defaultRotX = 0.10;
-    const defaultRotY = -0.32;
+    // Default hero orientation matching the reference mockup:
+    // Front face clearly visible and turned slightly to reveal the glowing right spine & top lid
+    const defaultRotX = 0.06;
+    const defaultRotY = 0.32;
     const defaultRotZ = 0.0;
 
     pivotGroup.rotation.x = defaultRotX;
@@ -115,7 +123,7 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
 
     const applyTextureToModel = (tex: THREE.Texture, model: THREE.Group) => {
       tex.colorSpace = THREE.SRGBColorSpace;
-      tex.flipY = false; // Essential for glTF UV mapping from Blender
+      tex.flipY = false; // Required for glTF UV mapping from Blender
       tex.wrapS = THREE.ClampToEdgeWrapping;
       tex.wrapT = THREE.ClampToEdgeWrapping;
       tex.generateMipmaps = true;
@@ -125,8 +133,8 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
 
       const mat = new THREE.MeshStandardMaterial({
         map: tex,
-        roughness: 0.28,
-        metalness: 0.06,
+        roughness: 0.22,
+        metalness: 0.05,
       });
       boxMaterial = mat;
 
@@ -179,11 +187,11 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
         modelScene.position.set(-center.x, -center.y, -center.z);
         pivotGroup.add(modelScene);
 
-        // Adjust camera distance to frame the box prominently (~78% of view)
+        // Adjust camera distance to frame the box prominently (~86% of container height)
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov = camera.fov * (Math.PI / 180);
-        const cameraDistance = (maxDim / 2) / Math.tan(fov / 2) * 1.18;
-        camera.position.z = Math.max(cameraDistance, 0.21);
+        const cameraDistance = (maxDim / 2) / Math.tan(fov / 2) * 1.08;
+        camera.position.z = Math.max(cameraDistance, 0.20);
         camera.lookAt(0, 0, 0);
 
         // Load and apply texture
@@ -273,15 +281,15 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
         }
 
         // Hero sway animation: keeps front face readable while creating alive 3D depth
-        const idleSwayY = autoRotate ? Math.sin(elapsedTime * 1.2) * 0.22 : 0;
-        const idleSwayX = autoRotate ? Math.cos(elapsedTime * 0.9) * 0.05 : 0;
+        const idleSwayY = autoRotate ? Math.sin(elapsedTime * 1.1) * 0.12 : 0;
+        const idleSwayX = autoRotate ? Math.cos(elapsedTime * 0.8) * 0.03 : 0;
 
         pivotGroup.rotation.y = defaultRotY + userRotOffset + idleSwayY;
         pivotGroup.rotation.x = currentRotX + idleSwayX;
       }
 
       // Gentle floating bobbing on Y axis
-      pivotGroup.position.y = Math.sin(elapsedTime * 1.8) * 0.0035;
+      pivotGroup.position.y = Math.sin(elapsedTime * 1.5) * 0.0035;
 
       renderer.render(scene, camera);
     };
@@ -344,8 +352,8 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
       {/* Loading Skeleton / Glow Placeholder */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-16 h-24 rounded-xl bg-fuchsia-500/20 border border-fuchsia-400/40 animate-pulse flex items-center justify-center shadow-[0_0_20px_rgba(217,70,239,0.3)]">
-            <div className="w-5 h-5 border-2 border-fuchsia-400 border-t-transparent rounded-full animate-spin" />
+          <div className="w-24 h-36 rounded-2xl bg-fuchsia-500/20 border border-fuchsia-400/40 animate-pulse flex items-center justify-center shadow-[0_0_25px_rgba(217,70,239,0.35)]">
+            <div className="w-6 h-6 border-2 border-fuchsia-400 border-t-transparent rounded-full animate-spin" />
           </div>
         </div>
       )}
@@ -353,7 +361,7 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
       {/* Error Fallback */}
       {loadError && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-[10px] text-fuchsia-300 bg-purple-950/80 px-2 py-1 rounded border border-fuchsia-500/40">
+          <div className="text-[10px] text-fuchsia-300 bg-purple-950/80 px-2.5 py-1.5 rounded-lg border border-fuchsia-500/40">
             3D preview offline
           </div>
         </div>

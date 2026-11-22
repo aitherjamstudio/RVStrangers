@@ -65,34 +65,39 @@ export const WelcomeAuthView: React.FC = () => {
             {/* Center Branding & Feature Highlights */}
             <div className="w-full flex flex-col items-center my-auto">
               
-              {/* App Icon / Central Hero Badge */}
-              <div className="relative w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center mt-2">
-                {/* Intense Outer Neon Blur Glow */}
-                <div className="absolute inset-0 rounded-[32px] bg-gradient-to-tr from-[#FF2E93] via-[#D946EF] to-[#8B5CF6] blur-xl opacity-80 animate-pulse pointer-events-none" />
+              {/* Central 3D Deck Box Hero (Direct radiant glow, prominent size, no box container) */}
+              <div className="relative w-44 h-56 sm:w-52 sm:h-64 flex items-center justify-center -mt-2 mb-1">
+                {/* Layer 1: Core Intense Neon Glow directly behind the 3D Box */}
+                <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-[#FF2E93] via-[#D946EF] to-[#8B5CF6] blur-2xl opacity-90 animate-pulse pointer-events-none" />
                 
-                {/* Dark Glass Squircle Icon Container */}
-                <div className="relative w-full h-full rounded-[28px] sm:rounded-[30px] bg-gradient-to-b from-[#2B0B47]/95 via-[#18042B]/95 to-[#120220] border-2 border-fuchsia-400/60 shadow-[0_0_35px_rgba(236,72,153,0.6),inset_0_1px_1px_rgba(255,255,255,0.3)] flex items-center justify-center overflow-hidden backdrop-blur-2xl">
-                  {/* Glass Top Highlight */}
-                  <div className="absolute -top-10 -left-10 w-24 h-24 rounded-full bg-white/15 blur-md pointer-events-none" />
+                {/* Layer 2: Wide Ambient Radiance */}
+                <div className="absolute -inset-2 rounded-full bg-gradient-to-b from-[#EC4899]/60 via-[#C026D3]/35 to-transparent blur-[50px] pointer-events-none" />
 
-                  {/* 3D Interactive Card Deck Box */}
-                  <DeckBox3D className="w-full h-full" />
-                </div>
+                {/* Ground Contact Shadow under the floating box */}
+                <div className="absolute -bottom-2 w-36 sm:w-44 h-5 rounded-[100%] bg-black/85 blur-md pointer-events-none" />
+                <div className="absolute -bottom-1 w-28 sm:w-36 h-3 rounded-[100%] bg-fuchsia-950/70 blur-sm pointer-events-none" />
+
+                {/* 3D Interactive Card Deck Box */}
+                <DeckBox3D className="relative z-10 w-full h-full" />
               </div>
 
               {/* Title & Tagline */}
-              <div className="text-center mt-5 sm:mt-6">
+              <div className="text-center mt-2 sm:mt-3">
                 <h1 className="text-3xl sm:text-4xl font-black italic tracking-tight">
                   <span className="text-white drop-shadow-[0_2px_10px_rgba(255,255,255,0.2)]">RV</span>
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF3EA5] via-[#F43F9E] to-[#E026D8] drop-shadow-[0_0_20px_rgba(244,63,158,0.6)]">Strangers</span>
                 </h1>
-                <p className="text-purple-100/85 text-xs sm:text-sm font-medium tracking-wide mt-2">
+                <p className="text-purple-100/85 text-xs sm:text-sm font-medium tracking-wide mt-1.5">
                   Built for meaningful connections.
                 </p>
 
-                {/* Delicate Glowing Curved Line / Arc */}
-                <div className="relative w-36 h-3 mx-auto mt-2 flex items-center justify-center overflow-hidden pointer-events-none">
-                  <div className="w-32 h-6 rounded-full border-t-2 border-fuchsia-500/80 shadow-[0_0_12px_#D946EF] blur-[0.5px]" />
+                {/* Glowing Heart Divider matching reference mockup */}
+                <div className="flex items-center justify-center gap-2.5 mt-2.5 opacity-90 pointer-events-none">
+                  <div className="w-12 sm:w-16 h-[1.5px] bg-gradient-to-r from-transparent via-pink-500/70 to-pink-500" />
+                  <svg className="w-3.5 h-3.5 text-pink-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.95)]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                  </svg>
+                  <div className="w-12 sm:w-16 h-[1.5px] bg-gradient-to-l from-transparent via-pink-500/70 to-pink-500" />
                 </div>
               </div>
 
