@@ -88,8 +88,8 @@ export const ProfileSetupView: React.FC = () => {
           <span>
             {stage === 'box_closed' && 'Step 1 of 3: Open Deck'}
             {stage === 'box_opening' && 'Step 1 of 3: Unboxing...'}
-            {stage === 'card_ready' && 'Step 2 of 3: Tap to Zoom & Flip'}
-            {stage === 'card_flipping' && 'Step 2 of 3: Zooming & Flipping...'}
+            {stage === 'card_ready' && 'Step 2 of 3: Tap to Reveal Identity'}
+            {stage === 'card_flipping' && 'Step 2 of 3: Revealing Identity...'}
             {stage === 'card_flipped' && 'Step 3 of 3: Personalize Your Card'}
           </span>
         </div>
@@ -102,8 +102,8 @@ export const ProfileSetupView: React.FC = () => {
         <p className="text-[11px] text-purple-200/80 mt-1 max-w-[300px] leading-tight">
           {stage === 'box_closed' && 'Your personal conversation deck is ready. Tap the box to open.'}
           {stage === 'box_opening' && 'Opening deck box and drawing your card...'}
-          {stage === 'card_ready' && 'Card revealed! Tap the card to zoom in and customize.'}
-          {stage === 'card_flipping' && 'Zooming card to full screen...'}
+          {stage === 'card_ready' && 'Your card has emerged! Tap it to reveal your identity card.'}
+          {stage === 'card_flipping' && 'Revealing player identity card...'}
           {stage === 'card_flipped' && 'Customize your identity directly on the card.'}
         </p>
       </div>
@@ -113,26 +113,30 @@ export const ProfileSetupView: React.FC = () => {
       {/* ======================================================== */}
       <div className="relative w-full max-w-[350px] flex-1 flex flex-col items-center justify-center my-auto min-h-0">
         
-        {/* Stages 1 to 4: 3D Box & Emerging/Zooming Card */}
-        {stage !== 'card_flipped' && (
-          <div className="relative w-full h-full min-h-[260px] max-h-[460px] flex items-center justify-center">
-            {/* Ground shadow beneath box */}
+        {/* Stages 1 to 4: 3D Box & Emerging/Flipping Card (stays mounted behind so transitions are seamless) */}
+        <div className={`relative w-full h-full min-h-[260px] max-h-[460px] flex items-center justify-center ${stage === 'card_flipped' ? 'absolute inset-0 pointer-events-none opacity-0' : ''}`}>
+          {/* Ground shadow beneath box */}
+          {stage !== 'card_flipped' && (
             <div className="absolute bottom-4 w-40 h-4 rounded-[100%] bg-black/80 blur-md pointer-events-none" />
+          )}
 
-            {/* 3D WebGL Canvas */}
-            <ProfileCard3D
-              stage={stage}
-              onBoxClick={handleBoxClick}
-              onCardClick={handleCardClick}
-              onOpeningFinished={handleOpeningFinished}
-              onFlipFinished={handleFlipFinished}
-            />
-          </div>
-        )}
+          {/* 3D WebGL Canvas */}
+          <ProfileCard3D
+            stage={stage}
+            selectedAvatar={selectedAvatar}
+            displayName={displayName}
+            handle={handle}
+            selectedMood={selectedMood}
+            onBoxClick={handleBoxClick}
+            onCardClick={handleCardClick}
+            onOpeningFinished={handleOpeningFinished}
+            onFlipFinished={handleFlipFinished}
+          />
+        </div>
 
         {/* Stage 5: The Zoomed Card Itself as the Interactive Profile Card */}
         {stage === 'card_flipped' && (
-          <div className="w-full max-w-[330px] rounded-3xl bg-[#1a052b] border-2 border-[#FF2E93]/75 p-4 shadow-[0_0_35px_rgba(255,46,147,0.4)] relative overflow-hidden animate-fade-in flex flex-col justify-between space-y-3 shrink-0">
+          <div className="w-full max-w-[330px] rounded-3xl bg-[#1a052b] border-2 border-[#FF2E93]/75 p-4 shadow-[0_0_35px_rgba(255,46,147,0.4)] relative overflow-hidden animate-fade-in flex flex-col justify-between space-y-3 shrink-0 z-20">
             {/* Card Header Strip */}
             <div className="flex items-center justify-between border-b border-pink-500/25 pb-2 relative z-10">
               <div className="flex items-center gap-1.5">
@@ -282,13 +286,14 @@ export const ProfileSetupView: React.FC = () => {
             className="w-full h-11 rounded-full bg-gradient-to-r from-[#FF2E93] to-[#D946EF] text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(255,46,147,0.7)] hover:shadow-[0_0_40px_rgba(255,46,147,0.9)] active:scale-95 transition-all duration-200 border border-pink-300 animate-bounce"
           >
             <RotateCcw className="w-4 h-4" />
-            <span>🃏 Tap Card to Zoom In & Personalize</span>
+            <span>🃏 Tap Card to Reveal Identity</span>
           </button>
         )}
 
         {stage === 'card_flipping' && (
           <div className="w-full h-11 rounded-full bg-white/10 border border-pink-500/30 text-pink-300 font-bold text-xs flex items-center justify-center gap-2 animate-pulse">
-            <span>Zooming in & flipping card...</span>
+            <Sparkles className="w-4 h-4 text-pink-400 animate-spin" />
+            <span>Revealing identity card...</span>
           </div>
         )}
 
