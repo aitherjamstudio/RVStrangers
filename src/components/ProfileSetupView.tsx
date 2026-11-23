@@ -75,8 +75,6 @@ export const ProfileSetupView: React.FC = () => {
     setScreen('dashboard');
   };
 
-  const currentAvatarObj = AVATARS.find((a) => a.emoji === selectedAvatar) || AVATARS[0];
-
   return (
     <div className="fixed inset-0 w-full h-[100dvh] max-h-[100dvh] bg-[#07000E] text-white flex flex-col items-center justify-between overflow-hidden select-none px-3 py-2 sm:py-3 font-comfortaa">
       {/* Background Ambient Radial Glows */}
@@ -134,11 +132,7 @@ export const ProfileSetupView: React.FC = () => {
 
         {/* Stage 5: The Zoomed Card Itself as the Interactive Profile Card */}
         {stage === 'card_flipped' && (
-          <div className="w-full max-w-[330px] rounded-3xl bg-gradient-to-b from-[#1C042F] to-[#0D011A] border-2 border-[#FF2E93]/70 p-4 shadow-[0_0_40px_rgba(255,46,147,0.4),inset_0_1px_1px_rgba(255,255,255,0.25)] relative overflow-hidden animate-fade-in flex flex-col justify-between space-y-3 shrink-0">
-            {/* Holographic Top Corner Sheen */}
-            <div className="absolute -top-16 -right-16 w-36 h-36 rounded-full bg-gradient-to-br from-[#FF2E93]/25 via-[#D946EF]/20 to-transparent blur-2xl pointer-events-none" />
-            <div className="absolute -bottom-16 -left-16 w-36 h-36 rounded-full bg-gradient-to-tr from-[#8B5CF6]/20 via-[#D946EF]/15 to-transparent blur-2xl pointer-events-none" />
-
+          <div className="w-full max-w-[330px] rounded-3xl bg-[#1a052b] border-2 border-[#FF2E93]/75 p-4 shadow-[0_0_35px_rgba(255,46,147,0.4)] relative overflow-hidden animate-fade-in flex flex-col justify-between space-y-3 shrink-0">
             {/* Card Header Strip */}
             <div className="flex items-center justify-between border-b border-pink-500/25 pb-2 relative z-10">
               <div className="flex items-center gap-1.5">
@@ -156,9 +150,9 @@ export const ProfileSetupView: React.FC = () => {
 
             {/* Avatar Emblem & One-Tap Selector directly on card */}
             <div className="flex flex-col items-center relative z-10">
-              {/* Glowing Avatar Emblem Portal */}
-              <div className={`relative w-16 h-16 rounded-2xl bg-gradient-to-br ${currentAvatarObj.color} p-0.5 shadow-[0_0_20px_rgba(255,46,147,0.6)] mb-2`}>
-                <div className="w-full h-full rounded-[14px] bg-[#140224]/85 flex items-center justify-center text-3xl backdrop-blur-sm">
+              {/* Glowing Avatar Emblem Portal matching card bg #1a052b */}
+              <div className="relative w-16 h-16 rounded-2xl bg-[#1a052b] border-2 border-pink-500/80 p-0.5 shadow-[0_0_20px_rgba(255,46,147,0.6)] mb-2 flex items-center justify-center">
+                <div className="w-full h-full rounded-[13px] bg-[#1a052b] flex items-center justify-center text-3xl">
                   <span>{selectedAvatar}</span>
                 </div>
               </div>
@@ -198,7 +192,7 @@ export const ProfileSetupView: React.FC = () => {
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="Enter player name"
-                    className="w-full h-8 pl-8 pr-3 rounded-xl bg-white/[0.07] border border-pink-500/35 text-white placeholder-purple-300/40 text-xs font-semibold focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-inner"
+                    className="w-full h-8 pl-8 pr-3 rounded-xl bg-[#130322]/80 border border-pink-500/35 text-white placeholder-purple-300/40 text-xs font-semibold focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-inner"
                   />
                 </div>
               </div>
@@ -220,7 +214,7 @@ export const ProfileSetupView: React.FC = () => {
                       setHandle(val.startsWith('@') ? val : `@${val}`);
                     }}
                     placeholder="@tag"
-                    className="w-full h-8 pl-8 pr-3 rounded-xl bg-white/[0.07] border border-pink-500/35 text-white placeholder-purple-300/40 text-xs font-semibold focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-inner"
+                    className="w-full h-8 pl-8 pr-3 rounded-xl bg-[#130322]/80 border border-pink-500/35 text-white placeholder-purple-300/40 text-xs font-semibold focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-inner"
                   />
                 </div>
               </div>
@@ -235,10 +229,10 @@ export const ProfileSetupView: React.FC = () => {
                   <select
                     value={selectedMood}
                     onChange={(e) => setSelectedMood(e.target.value)}
-                    className="w-full h-8 pl-8 pr-3 rounded-xl bg-[#1A042E] border border-pink-500/35 text-purple-100 text-[11px] font-semibold focus:outline-none focus:border-pink-500 shadow-inner"
+                    className="w-full h-8 pl-8 pr-3 rounded-xl bg-[#1a052b] border border-pink-500/35 text-purple-100 text-[11px] font-semibold focus:outline-none focus:border-pink-500 shadow-inner"
                   >
                     {MOODS.map((m) => (
-                      <option key={m} value={m} className="bg-[#1A042E] text-white">
+                      <option key={m} value={m} className="bg-[#1a052b] text-white">
                         {m}
                       </option>
                     ))}
