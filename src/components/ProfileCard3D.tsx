@@ -108,8 +108,8 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
     // 2. Card Pivot Group (Starts concealed inside box cavity below the notch!)
     const cardPivotGroup = new THREE.Group();
     worldGroup.add(cardPivotGroup);
-    // Initial hidden placement inside the box: Y = -0.020 (below top notch), Z = 0
-    cardPivotGroup.position.set(0, -0.020, 0.0);
+    // Initial hidden placement inside the box: Y = -0.060 (comfortably below top notch), Z = 0
+    cardPivotGroup.position.set(0, -0.060, 0.0);
     cardPivotGroup.visible = false; // Hidden until lid opens to guarantee zero clipping!
 
     const gltfLoader = new GLTFLoader();
@@ -232,8 +232,8 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
         boxGroup.visible = true;
         camera.position.set(0, 0, 0.44);
 
-        // Gentle floating and breathing light
-        boxGroup.position.set(0, Math.sin(elapsed * 1.5) * 0.003, 0);
+        // Gentle floating and breathing light - positioned comfortably in center-lower screen
+        boxGroup.position.set(0, -0.040 + Math.sin(elapsed * 1.5) * 0.003, 0);
         boxGroup.rotation.y = 0.24 + Math.sin(elapsed * 0.8) * 0.04;
         boxGroup.rotation.x = 0.06 + Math.cos(elapsed * 0.6) * 0.015;
         lidHingeGroup.rotation.x = 0;
@@ -260,20 +260,21 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
           cardPivotGroup.visible = true;
         }
 
-        // Phase C: Card slides smoothly upward out of box (Y: -0.020 -> 0.076)
+        // Phase C: Card slides smoothly upward out of box (Y: -0.060 -> 0.012)
         if (p > 0.18) {
           const cardSlideP = Math.min(1, (p - 0.18) / 0.55);
           const easedSlide = easeOutCubic(cardSlideP);
-          cardPivotGroup.position.y = -0.020 + easedSlide * 0.096; // Moves to 0.076
+          cardPivotGroup.position.y = -0.060 + easedSlide * 0.072; // Rises to 0.012 (comfortably down inside screen)
         }
 
-        // Phase D: Card glides forward toward camera & reframes (Z: 0 -> 0.08)
+        // Phase D: Card glides forward toward camera & box steps down and back
         if (p > 0.45) {
           const forwardP = Math.min(1, (p - 0.45) / 0.55);
           const easedFwd = easeOutCubic(forwardP);
-          cardPivotGroup.position.z = easedFwd * 0.08;
-          boxGroup.position.z = -easedFwd * 0.04; // Box steps back into background
-          camera.position.z = 0.44 - easedFwd * 0.06; // Camera tracks closer (0.38)
+          cardPivotGroup.position.z = easedFwd * 0.085;
+          boxGroup.position.y = -0.040 - easedFwd * 0.035; // Steps down to -0.075
+          boxGroup.position.z = -easedFwd * 0.05; // Box steps back into background
+          camera.position.z = 0.44; // Keeps comfortable wide view
         }
 
         if (openProgress >= 1) {
@@ -286,14 +287,15 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
       // ------------------------------------------
       if (currentStage === 'card_ready') {
         boxGroup.visible = true;
-        boxGroup.position.z = -0.04;
+        boxGroup.position.set(0, -0.075, -0.05);
         lidHingeGroup.rotation.x = -Math.PI * 0.54;
 
         cardPivotGroup.visible = true;
-        cardPivotGroup.position.y = 0.076 + Math.sin(elapsed * 2.0) * 0.0035;
-        cardPivotGroup.position.z = 0.08;
+        // Centered vertically with plenty of headroom above card
+        cardPivotGroup.position.y = 0.012 + Math.sin(elapsed * 2.0) * 0.0025;
+        cardPivotGroup.position.z = 0.085;
         cardPivotGroup.rotation.y = Math.sin(elapsed * 1.2) * 0.07;
-        camera.position.set(0, 0, 0.38);
+        camera.position.set(0, 0, 0.44);
 
         rightRimLight.intensity = 5.0 + Math.sin(elapsed * 3.0) * 0.6;
         flipProgress = 0;
@@ -307,8 +309,8 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
         const fP = easeInOutCubic(flipProgress);
 
         cardPivotGroup.rotation.y = fP * Math.PI; // 0 to 180 degrees
-        cardPivotGroup.position.y = 0.076 + Math.sin(fP * Math.PI) * 0.015; // Realistic 3D lift during flip
-        cardPivotGroup.position.z = 0.08 + Math.sin(fP * Math.PI) * 0.01;
+        cardPivotGroup.position.y = 0.012 + Math.sin(fP * Math.PI) * 0.008; // Gentle 3D lift during flip
+        cardPivotGroup.position.z = 0.085 + Math.sin(fP * Math.PI) * 0.008;
 
         if (flipProgress >= 1) {
           onFlipFinishedRef.current?.();
@@ -320,8 +322,9 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
       // ------------------------------------------
       if (currentStage === 'card_flipped') {
         cardPivotGroup.rotation.y = Math.PI; // Strictly 180°
-        cardPivotGroup.position.y = 0.076 + Math.sin(elapsed * 1.5) * 0.002;
-        cardPivotGroup.position.z = 0.08;
+        cardPivotGroup.position.y = 0.012 + Math.sin(elapsed * 1.5) * 0.002;
+        cardPivotGroup.position.z = 0.085;
+        camera.position.set(0, 0, 0.44);
       }
 
       renderer.render(scene, camera);
