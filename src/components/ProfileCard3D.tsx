@@ -2,15 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-export type SetupStage = 'box_closed' | 'box_opening' | 'card_front' | 'card_rotating' | 'card_flipped';
+export type SetupStage = 'box_closed' | 'box_opening' | 'card_ready' | 'card_flipping' | 'card_flipped';
 
 interface ProfileCard3DProps {
   className?: string;
   stage: SetupStage;
   onBoxClick?: () => void;
   onCardClick?: () => void;
-  onBoxOpened?: () => void;
-  onCardFlipped?: () => void;
+  onOpeningFinished?: () => void;
+  onFlipFinished?: () => void;
 }
 
 export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
@@ -18,13 +18,13 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
   stage,
   onBoxClick,
   onCardClick,
-  onBoxOpened,
-  onCardFlipped,
+  onOpeningFinished,
+  onFlipFinished,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [isAssetsLoaded, setIsAssetsLoaded] = useState(false);
 
-  // Keep references updated for the animation frame
+  // References to keep callbacks current in the Three.js animation loop
   const stageRef = useRef<SetupStage>(stage);
   stageRef.current = stage;
 
@@ -34,11 +34,11 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
   const onCardClickRef = useRef(onCardClick);
   onCardClickRef.current = onCardClick;
 
-  const onBoxOpenedRef = useRef(onBoxOpened);
-  onBoxOpenedRef.current = onBoxOpened;
+  const onOpeningFinishedRef = useRef(onOpeningFinished);
+  onOpeningFinishedRef.current = onOpeningFinished;
 
-  const onCardFlippedRef = useRef(onCardFlipped);
-  onCardFlippedRef.current = onCardFlipped;
+  const onFlipFinishedRef = useRef(onFlipFinished);
+  onFlipFinishedRef.current = onFlipFinished;
 
   useEffect(() => {
     const container = mountRef.current;
@@ -52,23 +52,25 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
     const cardModelUrl = `${baseUrl}3D/models/card.glb`;
     const cardTextureUrl = `${baseUrl}3D/textures/Profile_Card.webp`;
 
-    const width = container.clientWidth || 300;
-    const height = container.clientHeight || 360;
+    const width = container.clientWidth || 320;
+    const height = container.clientHeight || 380;
 
-    // Scene & Camera
+    // Scene & Perspective Camera
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(34, width / height, 0.05, 10);
-    // Adjusted camera distance: 0.44 avoids the "too zoomed in" look and gives comfortable margins
+    // Camera placed at comfortable framing distance (0.44) so objects are not oversized or cropped
     camera.position.set(0, 0, 0.44);
 
-    // WebGL Renderer
+    // High performance WebGL Renderer with alpha transparency for smooth neon blending
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(renderer.domElement);
 
-    // Neon & Rim Lights
+    // ==========================================
+    // LIGHTING: Atmospheric Cyberpunk Rim Lighting
+    // ==========================================
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
     scene.add(ambientLight);
 
@@ -88,25 +90,27 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
     topLight.position.set(0, 3.0, 0.2);
     scene.add(topLight);
 
-    // ==========================================
-    // 1. Box Group (Used in box_closed & box_opening)
-    // ==========================================
+    // Root Group
+    const worldGroup = new THREE.Group();
+    scene.add(worldGroup);
+
+    // 1. Box Group
     const boxGroup = new THREE.Group();
-    scene.add(boxGroup);
-    boxGroup.rotation.y = 0.26;
+    worldGroup.add(boxGroup);
+    boxGroup.rotation.y = 0.24;
     boxGroup.rotation.x = 0.06;
 
+    // Lid Hinge at top-back of box body: Y = 0.0707, Z = -0.0166
     const lidHingeGroup = new THREE.Group();
-    // Top hinge pivot of the box body at Y = 0.0707, Z = -0.0166
     lidHingeGroup.position.set(0, 0.0707, -0.0166);
     boxGroup.add(lidHingeGroup);
 
-    // ==========================================
-    // 2. Card Group (Used in card_front, rotating, flipped)
-    // ==========================================
-    const cardGroup = new THREE.Group();
-    scene.add(cardGroup);
-    cardGroup.visible = false;
+    // 2. Card Pivot Group (Starts concealed inside box cavity below the notch!)
+    const cardPivotGroup = new THREE.Group();
+    worldGroup.add(cardPivotGroup);
+    // Initial hidden placement inside the box: Y = -0.020 (below top notch), Z = 0
+    cardPivotGroup.position.set(0, -0.020, 0.0);
+    cardPivotGroup.visible = false; // Hidden until lid opens to guarantee zero clipping!
 
     const gltfLoader = new GLTFLoader();
     const textureLoader = new THREE.TextureLoader();
@@ -168,13 +172,16 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
       const center = b3.getCenter(new THREE.Vector3());
       cardScene.position.set(-center.x, -center.y, -center.z);
 
+      // Scale card slightly so it fits inside box cavity
+      cardScene.scale.set(0.92, 0.92, 0.92);
+
       textureLoader.load(cardTextureUrl, (cardTex) => {
         cardTex.colorSpace = THREE.SRGBColorSpace;
         cardTex.flipY = false;
         const cardMat = new THREE.MeshStandardMaterial({
           map: cardTex,
-          roughness: 0.25,
-          metalness: 0.05,
+          roughness: 0.22,
+          metalness: 0.08,
           side: THREE.DoubleSide,
         });
 
@@ -184,17 +191,17 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
           }
         });
 
-        cardGroup.add(cardScene);
+        cardPivotGroup.add(cardScene);
         notifyLoaded();
       });
     });
 
-    // Interaction Click / Tap Handler
+    // Interaction Raycasting / Click Handler
     const handleTap = () => {
       const current = stageRef.current;
       if (current === 'box_closed') {
         onBoxClickRef.current?.();
-      } else if (current === 'card_front') {
+      } else if (current === 'card_ready') {
         onCardClickRef.current?.();
       }
     };
@@ -209,7 +216,7 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
     let clock = new THREE.Clock();
 
     const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
-    const easeInOutQuad = (x: number) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+    const easeInOutCubic = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
     const animate = () => {
       reqId = requestAnimationFrame(animate);
@@ -218,81 +225,103 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
       const currentStage = stageRef.current;
 
       // ------------------------------------------
-      // 1. Box Closed Mode
+      // 1. STAGE: BOX CLOSED (Interactive Idle Float)
       // ------------------------------------------
       if (currentStage === 'box_closed') {
+        cardPivotGroup.visible = false;
         boxGroup.visible = true;
-        cardGroup.visible = false;
-        camera.position.set(0, 0, 0.44); // Comfortable framing
-
-        boxGroup.position.y = Math.sin(elapsed * 1.5) * 0.003;
-        boxGroup.rotation.y = 0.26 + Math.sin(elapsed * 0.8) * 0.04;
-        lidHingeGroup.rotation.x = 0; // Closed
-        openProgress = 0;
-      }
-
-      // ------------------------------------------
-      // 2. Box Opening Mode (Lid rotates -90° on X hinge)
-      // ------------------------------------------
-      if (currentStage === 'box_opening') {
-        boxGroup.visible = true;
-        cardGroup.visible = false;
         camera.position.set(0, 0, 0.44);
 
-        openProgress = Math.min(1, openProgress + delta * 1.3); // ~0.75s duration
-        const p = easeOutCubic(openProgress);
-        lidHingeGroup.rotation.x = -Math.PI * 0.52 * p; // -90° to -95°
+        // Gentle floating and breathing light
+        boxGroup.position.set(0, Math.sin(elapsed * 1.5) * 0.003, 0);
+        boxGroup.rotation.y = 0.24 + Math.sin(elapsed * 0.8) * 0.04;
+        boxGroup.rotation.x = 0.06 + Math.cos(elapsed * 0.6) * 0.015;
+        lidHingeGroup.rotation.x = 0;
 
-        if (openProgress >= 1) {
-          onBoxOpenedRef.current?.();
-        }
-      }
-
-      // ------------------------------------------
-      // 3. Card Front Display (Directly shown, floating)
-      // ------------------------------------------
-      if (currentStage === 'card_front') {
-        boxGroup.visible = false;
-        cardGroup.visible = true;
-        camera.position.set(0, 0, 0.38); // Card centered and prominent
-
-        cardGroup.position.y = Math.sin(elapsed * 2.0) * 0.0035;
-        cardGroup.rotation.x = 0.04;
-        cardGroup.rotation.y = Math.sin(elapsed * 1.2) * 0.08;
+        // Subtle pulsing rim light
+        rightRimLight.intensity = 4.8 + Math.sin(elapsed * 2.5) * 0.8;
+        openProgress = 0;
         flipProgress = 0;
       }
 
       // ------------------------------------------
-      // 4. Card Rotating Mode (Spins 180° on Y axis)
+      // 2. STAGE: BOX OPENING & CARD EMERGENCE
       // ------------------------------------------
-      if (currentStage === 'card_rotating') {
-        boxGroup.visible = false;
-        cardGroup.visible = true;
-        camera.position.set(0, 0, 0.38);
+      if (currentStage === 'box_opening') {
+        openProgress = Math.min(1, openProgress + delta * 0.62); // Smooth ~1.6s reveal
+        const p = easeInOutCubic(openProgress);
 
-        flipProgress = Math.min(1, flipProgress + delta * 1.6); // ~0.62s duration
-        const fP = easeInOutQuad(flipProgress);
+        // Phase A: Lid rotates open (-95 deg)
+        const lidP = Math.min(1, p * 1.5);
+        lidHingeGroup.rotation.x = -Math.PI * 0.54 * easeOutCubic(lidP);
 
-        cardGroup.rotation.x = 0.04;
-        cardGroup.rotation.y = fP * Math.PI; // 0 to 180 degrees
-        cardGroup.position.y = Math.sin(fP * Math.PI) * 0.015; // Gentle flip bounce
+        // Phase B: Card becomes visible once lid cracks open
+        if (p > 0.12) {
+          cardPivotGroup.visible = true;
+        }
 
-        if (flipProgress >= 1) {
-          onCardFlippedRef.current?.();
+        // Phase C: Card slides smoothly upward out of box (Y: -0.020 -> 0.076)
+        if (p > 0.18) {
+          const cardSlideP = Math.min(1, (p - 0.18) / 0.55);
+          const easedSlide = easeOutCubic(cardSlideP);
+          cardPivotGroup.position.y = -0.020 + easedSlide * 0.096; // Moves to 0.076
+        }
+
+        // Phase D: Card glides forward toward camera & reframes (Z: 0 -> 0.08)
+        if (p > 0.45) {
+          const forwardP = Math.min(1, (p - 0.45) / 0.55);
+          const easedFwd = easeOutCubic(forwardP);
+          cardPivotGroup.position.z = easedFwd * 0.08;
+          boxGroup.position.z = -easedFwd * 0.04; // Box steps back into background
+          camera.position.z = 0.44 - easedFwd * 0.06; // Camera tracks closer (0.38)
+        }
+
+        if (openProgress >= 1) {
+          onOpeningFinishedRef.current?.();
         }
       }
 
       // ------------------------------------------
-      // 5. Card Flipped Mode (Form active on card)
+      // 3. STAGE: CARD READY (Hovering, Tap to Flip)
       // ------------------------------------------
-      if (currentStage === 'card_flipped') {
-        boxGroup.visible = false;
-        cardGroup.visible = true;
+      if (currentStage === 'card_ready') {
+        boxGroup.visible = true;
+        boxGroup.position.z = -0.04;
+        lidHingeGroup.rotation.x = -Math.PI * 0.54;
+
+        cardPivotGroup.visible = true;
+        cardPivotGroup.position.y = 0.076 + Math.sin(elapsed * 2.0) * 0.0035;
+        cardPivotGroup.position.z = 0.08;
+        cardPivotGroup.rotation.y = Math.sin(elapsed * 1.2) * 0.07;
         camera.position.set(0, 0, 0.38);
 
-        cardGroup.rotation.x = 0;
-        cardGroup.rotation.y = Math.PI; // Exactly 180°
-        cardGroup.position.y = 0;
+        rightRimLight.intensity = 5.0 + Math.sin(elapsed * 3.0) * 0.6;
+        flipProgress = 0;
+      }
+
+      // ------------------------------------------
+      // 4. STAGE: CARD FLIPPING (Smooth 180° Flip)
+      // ------------------------------------------
+      if (currentStage === 'card_flipping') {
+        flipProgress = Math.min(1, flipProgress + delta * 1.55); // ~0.65s flip
+        const fP = easeInOutCubic(flipProgress);
+
+        cardPivotGroup.rotation.y = fP * Math.PI; // 0 to 180 degrees
+        cardPivotGroup.position.y = 0.076 + Math.sin(fP * Math.PI) * 0.015; // Realistic 3D lift during flip
+        cardPivotGroup.position.z = 0.08 + Math.sin(fP * Math.PI) * 0.01;
+
+        if (flipProgress >= 1) {
+          onFlipFinishedRef.current?.();
+        }
+      }
+
+      // ------------------------------------------
+      // 5. STAGE: CARD FLIPPED (Form Active)
+      // ------------------------------------------
+      if (currentStage === 'card_flipped') {
+        cardPivotGroup.rotation.y = Math.PI; // Strictly 180°
+        cardPivotGroup.position.y = 0.076 + Math.sin(elapsed * 1.5) * 0.002;
+        cardPivotGroup.position.z = 0.08;
       }
 
       renderer.render(scene, camera);
@@ -332,7 +361,7 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
             <div className="absolute -inset-2 rounded-full bg-pink-500/30 blur-md pointer-events-none" />
             <div className="w-10 h-10 rounded-full border-[3px] border-fuchsia-500/20 border-t-[#FF2E93] border-r-[#D946EF] animate-spin shadow-[0_0_16px_rgba(255,46,147,0.6)]" />
           </div>
-          <span className="text-xs font-bold text-pink-300 tracking-wide mt-3">Loading 3D Deck...</span>
+          <span className="text-xs font-bold text-pink-300 tracking-wide mt-3">Preparing 3D Deck...</span>
         </div>
       )}
     </div>
