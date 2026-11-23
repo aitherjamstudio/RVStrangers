@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useGameStore } from './store/useGameStore';
 import { WelcomeAuthView } from './components/WelcomeAuthView';
+import { ProfileSetupView } from './components/ProfileSetupView';
 import { TopNav } from './components/TopNav';
 import { DashboardView } from './components/DashboardView';
 import { GameTable } from './components/GameTable';
@@ -27,11 +28,12 @@ export const App: React.FC = () => {
       <div className="w-full max-w-md sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl min-h-screen flex flex-col px-3.5 sm:px-6 lg:px-8 relative z-10 transition-all duration-300">
         
         {/* Global Persistent Top Navigation (Shown across in-app pages) */}
-        {currentScreen !== 'welcome' && <TopNav />}
+        {currentScreen !== 'welcome' && currentScreen !== 'profile-setup' && <TopNav />}
 
         {/* Active Screen Display (Routed by state) */}
-        <main className={`flex-1 w-full ${currentScreen === 'welcome' ? 'flex flex-col items-center justify-center' : ''}`}>
+        <main className={`flex-1 w-full ${currentScreen === 'welcome' || currentScreen === 'profile-setup' ? 'flex flex-col items-center justify-center' : ''}`}>
           {currentScreen === 'welcome' && <WelcomeAuthView />}
+          {currentScreen === 'profile-setup' && <ProfileSetupView />}
           {currentScreen === 'dashboard' && <DashboardView />}
           {currentScreen === 'game' && <GameTable />}
           {currentScreen === 'friends' && <FriendsView />}
@@ -41,7 +43,7 @@ export const App: React.FC = () => {
         </main>
 
         {/* Global Persistent Navigation (Present across in-app pages: Play, My Cards, Store, Profile) */}
-        {currentScreen !== 'welcome' && <BottomNav />}
+        {currentScreen !== 'welcome' && currentScreen !== 'profile-setup' && <BottomNav />}
 
         {/* Global Toast Notification */}
         {toastMessage && (

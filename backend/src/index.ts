@@ -1717,6 +1717,29 @@ export default {
         });
       }
 
+      // POST /api/profile (Update display name, handle, avatar in D1)
+      if (url.pathname === '/api/profile' && method === 'POST') {
+        const auth = await authenticateRequest(request, env);
+        if (!auth) return errorResponse('Unauthorized', 401);
+
+        const body: any = await request.json().catch(() => ({}));
+        const name = body.name ? String(body.name).trim().slice(0, 30) : null;
+        const handle = body.handle ? String(body.handle).trim().replace(/^@+/, '').slice(0, 25) : null;
+        const avatar = body.avatar ? String(body.avatar).trim().slice(0, 20) : null;
+
+        if (name || handle || avatar) {
+          await env.DB.prepare(
+            `UPDATE profiles SET
+              display_name = COALESCE(?, display_name),
+              username = COALESCE(?, username),
+              avatar_url = COALESCE(?, avatar_url)
+             WHERE id = ?`
+          ).bind(name, handle, avatar, auth.sub).run();
+        }
+
+        return jsonResponse({ success: true, message: 'Profile updated in D1' });
+      }
+
       // ========================================================
       // DECKS & CARDS CATALOG (rvstrangers-cards D1)
       // ========================================================

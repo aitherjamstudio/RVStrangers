@@ -246,6 +246,20 @@ class ApiService {
       return null;
     }
   }
+
+  // --- Profile: Update Name, Handle, Avatar ---
+  async updateProfile(profile: { name?: string; handle?: string; avatar?: string }, token: string) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/profile`, {
+        method: 'POST',
+        headers: this.getHeaders(token),
+        body: JSON.stringify(profile),
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
 }
 
 export const api = new ApiService();

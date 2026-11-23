@@ -1,4 +1,4 @@
-export type ScreenType = 'welcome' | 'landing' | 'dashboard' | 'game' | 'friends' | 'matchmaking' | 'store' | 'my-cards';
+export type ScreenType = 'welcome' | 'landing' | 'dashboard' | 'game' | 'friends' | 'matchmaking' | 'store' | 'my-cards' | 'profile-setup';
 
 export interface AuthUser {
   id: string;

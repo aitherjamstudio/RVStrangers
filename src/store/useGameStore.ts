@@ -41,6 +41,7 @@ interface GameStore {
   isAuthenticated: boolean;
   isGuest: boolean;
   applyAuthSession: (res: AuthResponse) => void;
+  updateUserProfile: (data: { name: string; handle: string; avatar: string }) => Promise<void>;
   initSessionFromD1: () => Promise<void>;
   loginWithGoogle: (credential?: string, email?: string, name?: string) => Promise<void>;
   loginWithCredentials: (email: string, pass: string) => Promise<boolean>;
@@ -219,12 +220,39 @@ export const useGameStore = create<GameStore>((set, get) => ({
         diamonds: res.wallet?.diamonds ?? 0,
         isAuthenticated: true,
         isGuest: false,
-        currentScreen: 'dashboard',
+        currentScreen: 'profile-setup', // Login users from workers are routed to profile setup card experience
       });
       get().showToast(`Signed in with Google! Welcome ${res.user.name} 👋`);
     } else {
       get().showToast(res?.error || 'Google login failed.');
     }
+  },
+
+  updateUserProfile: async (data: { name: string; handle: string; avatar: string }) => {
+    const current = get().currentUser;
+    if (!current) return;
+    const updatedUser: AuthUser = {
+      ...current,
+      name: data.name.trim() || current.name,
+      handle: data.handle.trim() || current.handle,
+      avatar: data.avatar || current.avatar,
+    };
+    const token = get().token;
+    if (token) {
+      api.updateProfile({ name: updatedUser.name, handle: updatedUser.handle, avatar: updatedUser.avatar }, token).catch(() => {});
+    }
+    const session: AuthSession = {
+      token: token || undefined,
+      user: updatedUser,
+    };
+    try {
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+    } catch {}
+    set({
+      currentUser: updatedUser,
+      currentScreen: 'dashboard',
+    });
+    get().showToast(`Profile ready! Welcome to RVStrangers, ${updatedUser.name} ✨`);
   },
 
   loginWithGoogle: async (credential) => {
