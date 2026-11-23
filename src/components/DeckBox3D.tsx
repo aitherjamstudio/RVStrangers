@@ -29,13 +29,13 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
     const rawBase = import.meta.env.BASE_URL || './';
     const baseUrl = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
     
-    // Default model and texture URLs
+    // Default model and texture URLs from local public/3D for instant offline/fast loading
     const defaultModelPath = `${baseUrl}3D/models/default_box.glb`;
-    const defaultLocalTexturePath = `${baseUrl}3D/textures/default_box_texture.webp`;
-    const defaultR2TexturePath = 'https://worker.aitherjamstudio.workers.dev/api/assets/textures/default_box_texture.webp';
+    const defaultLocalTextureWebp = `${baseUrl}3D/textures/default_box_texture.webp`;
+    const defaultLocalTexturePng = `${baseUrl}3D/textures/default_box_texture.png`;
     
     const resolvedModelUrl = modelUrl || defaultModelPath;
-    const resolvedTextureUrl = textureUrl || defaultLocalTexturePath;
+    const resolvedTextureUrl = textureUrl || defaultLocalTextureWebp;
 
     // Dimensions
     let width = container.clientWidth || 180;
@@ -187,15 +187,15 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
         modelScene.position.set(-center.x, -center.y, -center.z);
         pivotGroup.add(modelScene);
 
-        // Adjust camera distance to frame the box prominently (~86% of container height)
+        // Frame the box comfortably inside the canvas with room for 3D rotation
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov = camera.fov * (Math.PI / 180);
-        const cameraDistance = (maxDim / 2) / Math.tan(fov / 2) * 1.08;
-        camera.position.z = Math.max(cameraDistance, 0.20);
+        const cameraDistance = (maxDim / 2) / Math.tan(fov / 2) * 1.22;
+        camera.position.z = Math.max(cameraDistance, 0.23);
         camera.lookAt(0, 0, 0);
 
-        // Load and apply texture
-        loadTextureWithFallback(resolvedTextureUrl, defaultR2TexturePath);
+        // Load and apply texture directly from local public/3D
+        loadTextureWithFallback(resolvedTextureUrl, defaultLocalTexturePng);
 
         setIsLoading(false);
       },
@@ -232,7 +232,7 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
       dragVelocityY = deltaY * 0.012;
 
       userRotOffset += dragVelocityX;
-      currentRotX = Math.max(-Math.PI * 0.35, Math.min(Math.PI * 0.35, currentRotX + dragVelocityY));
+      currentRotX = Math.max(-Math.PI * 0.22, Math.min(Math.PI * 0.22, currentRotX + dragVelocityY));
 
       previousPointerX = clientX;
       previousPointerY = clientY;
@@ -270,7 +270,7 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
         dragVelocityX *= 0.92;
         dragVelocityY *= 0.92;
         userRotOffset += dragVelocityX;
-        currentRotX = Math.max(-Math.PI * 0.35, Math.min(Math.PI * 0.35, currentRotX + dragVelocityY));
+        currentRotX = Math.max(-Math.PI * 0.22, Math.min(Math.PI * 0.22, currentRotX + dragVelocityY));
 
         const timeSinceInteract = (performance.now() - lastInteractTime) / 1000;
 

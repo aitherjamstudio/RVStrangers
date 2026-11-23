@@ -34,10 +34,10 @@ export const WelcomeAuthView: React.FC = () => {
   };
 
   return (
-    <div className="w-full min-h-[100dvh] sm:min-h-[92vh] flex flex-col items-center justify-center py-2 sm:py-6 px-2 sm:px-4 select-none font-comfortaa">
+    <div className="w-full h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col items-center justify-center p-0 sm:p-4 select-none font-comfortaa">
       
-      {/* Mobile Card Frame Container */}
-      <div className="relative w-full max-w-[430px] min-h-[680px] sm:min-h-[760px] sm:max-h-[840px] bg-gradient-to-b from-[#130222] via-[#0D011A] to-[#07000E] rounded-[36px] sm:rounded-[44px] overflow-hidden flex flex-col justify-between items-center px-5 sm:px-6 py-7 sm:py-9 shadow-2xl border border-white/10 sm:border-purple-800/30">
+      {/* Mobile Card Frame Container (Fixed layout, fits viewport with zero scrolling) */}
+      <div className="relative w-full max-w-[430px] h-full sm:h-auto sm:max-h-[min(820px,94vh)] bg-gradient-to-b from-[#130222] via-[#0D011A] to-[#07000E] rounded-none sm:rounded-[40px] overflow-hidden flex flex-col justify-between items-center px-5 sm:px-6 py-4 sm:py-6 shadow-2xl border-0 sm:border sm:border-purple-800/30">
 
         {/* Top-Left Ambient Aurora Glow Wave */}
         <div className="absolute -top-16 -left-16 w-80 h-80 rounded-full bg-gradient-to-br from-[#FF2E93]/40 via-[#8A2BE2]/20 to-transparent blur-[75px] pointer-events-none" />
@@ -60,13 +60,13 @@ export const WelcomeAuthView: React.FC = () => {
         {/* WELCOME SCREEN DISPLAY                                   */}
         {/* ======================================================== */}
         {authMode === 'welcome' && (
-          <div className="w-full flex-1 flex flex-col justify-between items-center z-10 py-1">
+          <div className="w-full flex-1 flex flex-col justify-between items-center z-10 py-1 overflow-hidden">
             
             {/* Center Branding & Feature Highlights */}
             <div className="w-full flex flex-col items-center my-auto">
               
-              {/* Central 3D Deck Box Hero (Direct radiant glow, prominent size, no box container) */}
-              <div className="relative w-44 h-56 sm:w-52 sm:h-64 flex items-center justify-center -mt-2 mb-1">
+              {/* Central 3D Deck Box Hero (Direct radiant glow, comfortably framed inside canvas) */}
+              <div className="relative w-40 h-48 sm:w-48 sm:h-56 flex items-center justify-center -mt-1 mb-1 shrink-0">
                 {/* Layer 1: Core Intense Neon Glow directly behind the 3D Box */}
                 <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-[#FF2E93] via-[#D946EF] to-[#8B5CF6] blur-2xl opacity-90 animate-pulse pointer-events-none" />
                 
@@ -74,82 +74,82 @@ export const WelcomeAuthView: React.FC = () => {
                 <div className="absolute -inset-2 rounded-full bg-gradient-to-b from-[#EC4899]/60 via-[#C026D3]/35 to-transparent blur-[50px] pointer-events-none" />
 
                 {/* Ground Contact Shadow under the floating box */}
-                <div className="absolute -bottom-2 w-36 sm:w-44 h-5 rounded-[100%] bg-black/85 blur-md pointer-events-none" />
-                <div className="absolute -bottom-1 w-28 sm:w-36 h-3 rounded-[100%] bg-fuchsia-950/70 blur-sm pointer-events-none" />
+                <div className="absolute -bottom-2 w-32 sm:w-40 h-4 rounded-[100%] bg-black/85 blur-md pointer-events-none" />
+                <div className="absolute -bottom-1 w-24 sm:w-32 h-2.5 rounded-[100%] bg-fuchsia-950/70 blur-sm pointer-events-none" />
 
                 {/* 3D Interactive Card Deck Box */}
                 <DeckBox3D className="relative z-10 w-full h-full" />
               </div>
 
               {/* Title & Tagline */}
-              <div className="text-center mt-2 sm:mt-3">
-                <h1 className="text-3xl sm:text-4xl font-black italic tracking-tight">
+              <div className="text-center mt-1 sm:mt-2">
+                <h1 className="text-2xl sm:text-3xl font-black italic tracking-tight">
                   <span className="text-white drop-shadow-[0_2px_10px_rgba(255,255,255,0.2)]">RV</span>
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF3EA5] via-[#F43F9E] to-[#E026D8] drop-shadow-[0_0_20px_rgba(244,63,158,0.6)]">Strangers</span>
                 </h1>
-                <p className="text-purple-100/85 text-xs sm:text-sm font-medium tracking-wide mt-1.5">
+                <p className="text-purple-100/85 text-xs sm:text-sm font-medium tracking-wide mt-1">
                   Built for meaningful connections.
                 </p>
 
-                {/* Glowing Heart Divider matching reference mockup */}
-                <div className="flex items-center justify-center gap-2.5 mt-2.5 opacity-90 pointer-events-none">
-                  <div className="w-12 sm:w-16 h-[1.5px] bg-gradient-to-r from-transparent via-pink-500/70 to-pink-500" />
-                  <svg className="w-3.5 h-3.5 text-pink-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.95)]" fill="currentColor" viewBox="0 0 24 24">
+                {/* Glowing Heart Divider */}
+                <div className="flex items-center justify-center gap-2 mt-1.5 opacity-90 pointer-events-none">
+                  <div className="w-10 sm:w-14 h-[1.5px] bg-gradient-to-r from-transparent via-pink-500/70 to-pink-500" />
+                  <svg className="w-3 h-3 text-pink-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.95)]" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                   </svg>
-                  <div className="w-12 sm:w-16 h-[1.5px] bg-gradient-to-l from-transparent via-pink-500/70 to-pink-500" />
+                  <div className="w-10 sm:w-14 h-[1.5px] bg-gradient-to-l from-transparent via-pink-500/70 to-pink-500" />
                 </div>
               </div>
 
               {/* 3 Feature Pillars */}
-              <div className="flex items-center justify-between w-full max-w-[340px] px-2 mt-6 sm:mt-7 mb-2">
+              <div className="flex items-center justify-between w-full max-w-[320px] px-2 mt-3 sm:mt-4 mb-1 shrink-0">
                 
                 {/* Pillar 1: Meet New People */}
                 <div className="flex flex-col items-center flex-1">
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center shadow-inner">
-                    <svg className="w-5 h-5 text-purple-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center shadow-inner">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                       <circle cx="9" cy="7" r="4" />
                       <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
                       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                   </div>
-                  <span className="text-[11px] font-semibold text-purple-200 text-center leading-tight mt-2">
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-purple-200 text-center leading-tight mt-1.5">
                     Meet<br/>New People
                   </span>
                 </div>
 
                 {/* Vertical Divider 1 */}
-                <div className="h-8 w-[1px] bg-white/10" />
+                <div className="h-7 w-[1px] bg-white/10" />
 
                 {/* Pillar 2: Play Card Games */}
                 <div className="flex flex-col items-center flex-1">
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center shadow-inner">
-                    <svg className="w-5 h-5 text-purple-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center shadow-inner">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="5" width="13" height="15" rx="2" transform="rotate(-6 3 5)" />
                       <rect x="8" y="3" width="13" height="15" rx="2" transform="rotate(6 8 3)" />
                       <path d="M14.5 9.5l.6 1.2 1.2.6-1.2.6-.6 1.2-.6-1.2-1.2-.6 1.2-.6z" fill="currentColor" />
                     </svg>
                   </div>
-                  <span className="text-[11px] font-semibold text-purple-200 text-center leading-tight mt-2">
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-purple-200 text-center leading-tight mt-1.5">
                     Play<br/>Card Games
                   </span>
                 </div>
 
                 {/* Vertical Divider 2 */}
-                <div className="h-8 w-[1px] bg-white/10" />
+                <div className="h-7 w-[1px] bg-white/10" />
 
                 {/* Pillar 3: Chat & Connect */}
                 <div className="flex flex-col items-center flex-1">
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center shadow-inner">
-                    <svg className="w-5 h-5 text-purple-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center shadow-inner">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                       <circle cx="8" cy="10" r="0.8" fill="currentColor" stroke="none" />
                       <circle cx="12" cy="10" r="0.8" fill="currentColor" stroke="none" />
                       <circle cx="16" cy="10" r="0.8" fill="currentColor" stroke="none" />
                     </svg>
                   </div>
-                  <span className="text-[11px] font-semibold text-purple-200 text-center leading-tight mt-2">
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-purple-200 text-center leading-tight mt-1.5">
                     Chat<br/>& Connect
                   </span>
                 </div>
@@ -159,13 +159,13 @@ export const WelcomeAuthView: React.FC = () => {
             </div>
 
             {/* Bottom Action Buttons (Clean Mobile App Style) */}
-            <div className="w-full max-w-[360px] space-y-3.5 z-20 pb-2 sm:pb-3">
+            <div className="w-full max-w-[360px] space-y-2.5 sm:space-y-3 z-20 pb-1 sm:pb-2 shrink-0">
               
               {/* 1. Continue to Login */}
               <button
                 type="button"
                 onClick={() => loginWithGoogle()}
-                className="w-full h-14 px-6 rounded-full bg-white text-[#150325] font-bold text-sm sm:text-base flex items-center justify-between shadow-[0_0_35px_rgba(236,72,153,0.5)] hover:shadow-[0_0_45px_rgba(236,72,153,0.7)] hover:bg-slate-50 active:scale-[0.98] transition-all duration-200 group border border-white"
+                className="w-full h-12 sm:h-13 px-6 rounded-full bg-white text-[#150325] font-bold text-sm sm:text-base flex items-center justify-between shadow-[0_0_35px_rgba(236,72,153,0.5)] hover:shadow-[0_0_45px_rgba(236,72,153,0.7)] hover:bg-slate-50 active:scale-[0.98] transition-all duration-200 group border border-white"
               >
                 <div className="w-6 h-6 flex items-center justify-center shrink-0">
                   <LogIn className="w-5 h-5 text-[#140224]" />
@@ -182,7 +182,7 @@ export const WelcomeAuthView: React.FC = () => {
               <button
                 type="button"
                 onClick={continueAsGuest}
-                className="w-full h-14 px-6 rounded-full bg-[#180429]/80 border-2 border-[#D946EF]/80 hover:border-[#D946EF] text-white font-bold text-sm sm:text-base flex items-center justify-between shadow-[0_0_20px_rgba(217,70,239,0.3)] hover:shadow-[0_0_30px_rgba(217,70,239,0.5)] active:scale-[0.98] transition-all duration-200 backdrop-blur-md group"
+                className="w-full h-12 sm:h-13 px-6 rounded-full bg-[#180429]/80 border-2 border-[#D946EF]/80 hover:border-[#D946EF] text-white font-bold text-sm sm:text-base flex items-center justify-between shadow-[0_0_20px_rgba(217,70,239,0.3)] hover:shadow-[0_0_30px_rgba(217,70,239,0.5)] active:scale-[0.98] transition-all duration-200 backdrop-blur-md group"
               >
                 <div className="w-6 h-6 flex items-center justify-center shrink-0">
                   <User className="w-5 h-5 text-purple-200 group-hover:text-white transition-colors" />
@@ -191,7 +191,7 @@ export const WelcomeAuthView: React.FC = () => {
                   Continue as a guest
                 </span>
                 <div className="shrink-0">
-                  <span className="px-3.5 py-1.5 rounded-full bg-[#8E1A8B] text-purple-100 text-xs font-semibold tracking-wide border border-pink-400/30">
+                  <span className="px-3.5 py-1 rounded-full bg-[#8E1A8B] text-purple-100 text-xs font-semibold tracking-wide border border-pink-400/30">
                     Quick Play
                   </span>
                 </div>
