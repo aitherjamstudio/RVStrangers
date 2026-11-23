@@ -8,10 +8,74 @@
     <!-- Google Fonts: Comfortaa -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+      /* Initial Real Circle Loader with Brand Colors */
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        background-color: #07000E;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        z-index: 99999;
+        font-family: 'Comfortaa', -apple-system, sans-serif;
+      }
+      .brand-spinner-wrap {
+        position: relative;
+        width: 56px;
+        height: 56px;
+      }
+      .brand-spinner-circle {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 4px solid rgba(217, 70, 239, 0.15);
+        border-top-color: #FF2E93;
+        border-right-color: #D946EF;
+        box-shadow: 0 0 20px rgba(255, 46, 147, 0.6), inset 0 0 12px rgba(217, 70, 239, 0.3);
+        animation: brandSpin 0.85s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+      }
+      .brand-spinner-glow {
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 46, 147, 0.4) 0%, transparent 70%);
+        filter: blur(10px);
+      }
+      @keyframes brandSpin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .brand-loader-title {
+        font-size: 16px;
+        font-weight: 800;
+        font-style: italic;
+        letter-spacing: -0.5px;
+      }
+      .brand-loader-title .brand-rv {
+        color: #FFFFFF;
+      }
+      .brand-loader-title .brand-strangers {
+        color: #FF2E93;
+        text-shadow: 0 0 14px rgba(255, 46, 147, 0.7);
+      }
+    </style>
   </head>
   <body class="bg-bgDark text-white antialiased font-comfortaa select-none min-h-screen">
-    <div id="root"></div>
+    <div id="root">
+      <div id="initial-loader">
+        <div class="brand-spinner-wrap">
+          <div class="brand-spinner-glow"></div>
+          <div class="brand-spinner-circle"></div>
+        </div>
+        <div class="brand-loader-title">
+          <span class="brand-rv">RV</span><span class="brand-strangers">Strangers</span>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

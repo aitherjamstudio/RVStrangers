@@ -349,11 +349,12 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
       {/* 3D Canvas Container */}
       <div ref={mountRef} className="w-full h-full flex items-center justify-center" />
 
-      {/* Loading Skeleton / Glow Placeholder */}
+      {/* Brand Circle Loader & Glow Placeholder */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-24 h-36 rounded-2xl bg-fuchsia-500/20 border border-fuchsia-400/40 animate-pulse flex items-center justify-center shadow-[0_0_25px_rgba(217,70,239,0.35)]">
-            <div className="w-6 h-6 border-2 border-fuchsia-400 border-t-transparent rounded-full animate-spin" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
+          <div className="relative w-12 h-12 flex items-center justify-center">
+            <div className="absolute -inset-1 rounded-full bg-pink-500/30 blur-md pointer-events-none" />
+            <div className="w-10 h-10 rounded-full border-[3px] border-fuchsia-500/20 border-t-[#FF2E93] border-r-[#D946EF] animate-spin shadow-[0_0_16px_rgba(255,46,147,0.6)]" />
           </div>
         </div>
       )}

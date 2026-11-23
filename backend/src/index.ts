@@ -814,9 +814,78 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
       background: #FF2E93;
       box-shadow: 0 0 8px #FF2E93;
     }
+    /* Fullscreen Brand Circle Loader */
+    #pageLoader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background-color: #07000E;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s ease;
+    }
+    #pageLoader.loader-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .brand-spinner-wrap {
+      position: relative;
+      width: 56px;
+      height: 56px;
+    }
+    .brand-spinner-circle {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 4px solid rgba(217, 70, 239, 0.15);
+      border-top-color: #FF2E93;
+      border-right-color: #D946EF;
+      box-shadow: 0 0 20px rgba(255, 46, 147, 0.6), inset 0 0 12px rgba(217, 70, 239, 0.3);
+      animation: brandSpin 0.85s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+    }
+    .brand-spinner-glow {
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 46, 147, 0.4) 0%, transparent 70%);
+      filter: blur(10px);
+    }
+    @keyframes brandSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .brand-loader-title {
+      font-size: 16px;
+      font-weight: 800;
+      font-style: italic;
+      letter-spacing: -0.5px;
+      font-family: 'Comfortaa', -apple-system, sans-serif;
+    }
+    .brand-loader-title .brand-rv {
+      color: #FFFFFF;
+    }
+    .brand-loader-title .brand-strangers {
+      color: #FF2E93;
+      text-shadow: 0 0 14px rgba(255, 46, 147, 0.7);
+    }
   </style>
 </head>
 <body>
+  <!-- Fullscreen Real Circle Loader until page & 3D model properly load -->
+  <div id="pageLoader">
+    <div class="brand-spinner-wrap">
+      <div class="brand-spinner-glow"></div>
+      <div class="brand-spinner-circle"></div>
+    </div>
+    <div class="brand-loader-title">
+      <span class="brand-rv">RV</span><span class="brand-strangers">Strangers</span>
+    </div>
+  </div>
+
   <div class="glow-top-left"></div>
   <div class="glow-bottom-right"></div>
 
@@ -942,6 +1011,19 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
     }
   }
   </script>
+  <script>
+    function hidePageLoader() {
+      const loader = document.getElementById('pageLoader');
+      if (loader && !loader.classList.contains('loader-hidden')) {
+        loader.classList.add('loader-hidden');
+        setTimeout(() => {
+          try { loader.remove(); } catch (_) {}
+        }, 450);
+      }
+    }
+    // Safety fallback: ensure page is always accessible within 3.5s even on slow connections
+    setTimeout(hidePageLoader, 3500);
+  </script>
   <script type="module">
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -1020,7 +1102,14 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
               fallback.style.opacity = '0';
               setTimeout(() => fallback.remove(), 500);
             }
+            renderer.render(scene, camera);
+            // Model and texture fully ready: reveal page!
+            hidePageLoader();
+          }, undefined, () => {
+            hidePageLoader();
           });
+        }, undefined, () => {
+          hidePageLoader();
         });
 
         let isDragging = false;
@@ -1079,9 +1168,12 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
           renderer.render(scene, camera);
         };
         animate();
+      } else {
+        hidePageLoader();
       }
     } catch (e) {
       console.warn('3D preview init error:', e);
+      hidePageLoader();
     }
   </script>
 </body>
