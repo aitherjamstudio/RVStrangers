@@ -479,7 +479,7 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>RVStrangers - Welcome</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -492,27 +492,31 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
       user-select: none;
       -webkit-user-select: none;
     }
-    body {
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      max-height: 100dvh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
       background-color: #07000E;
       color: #FFFFFF;
       font-family: 'Comfortaa', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      min-height: 100vh;
-      min-height: 100dvh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 12px;
-      overflow-x: hidden;
       position: relative;
+      -webkit-font-smoothing: antialiased;
     }
     /* Ambient Glows */
     .glow-top-left {
       position: fixed;
       top: -80px;
       left: -80px;
-      width: 320px;
-      height: 320px;
+      width: 280px;
+      height: 280px;
       border-radius: 50%;
       background: radial-gradient(circle, rgba(255, 46, 147, 0.35) 0%, rgba(138, 43, 226, 0.15) 50%, transparent 70%);
       filter: blur(60px);
@@ -522,155 +526,147 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
       position: fixed;
       bottom: -80px;
       right: -80px;
-      width: 320px;
-      height: 320px;
+      width: 280px;
+      height: 280px;
       border-radius: 50%;
       background: radial-gradient(circle, rgba(217, 70, 239, 0.3) 0%, rgba(138, 43, 226, 0.15) 50%, transparent 70%);
       filter: blur(60px);
       pointer-events: none;
     }
-    /* Mobile Frame */
+    /* Mobile Card Frame (Fixed Viewport, Zero Scrolling) */
     .app-frame {
       position: relative;
       width: 100%;
-      max-width: 420px;
-      min-height: 680px;
-      max-height: 840px;
+      height: 100%;
+      height: 100dvh;
+      max-height: 100dvh;
+      max-width: 430px;
       background: linear-gradient(180deg, #130222 0%, #0D011A 50%, #07000E 100%);
-      border-radius: 40px;
-      border: 1px solid rgba(217, 70, 239, 0.25);
-      box-shadow: 0 0 60px rgba(217, 70, 239, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.12);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
-      padding: 32px 24px;
+      padding: 14px 20px 16px;
       overflow: hidden;
+      box-sizing: border-box;
+    }
+    @media (min-width: 480px) {
+      body {
+        padding: 14px;
+      }
+      .app-frame {
+        height: auto;
+        max-height: min(800px, 94vh);
+        border-radius: 40px;
+        border: 1px solid rgba(217, 70, 239, 0.25);
+        box-shadow: 0 0 60px rgba(217, 70, 239, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+        padding: 22px 24px 24px;
+      }
     }
     /* Angled Floating Cards in Corners */
     .floating-card-left {
       position: absolute;
-      top: -16px;
-      left: -20px;
-      width: 100px;
-      height: 145px;
-      border-radius: 18px;
+      top: -12px;
+      left: -16px;
+      width: 80px;
+      height: 120px;
+      border-radius: 16px;
       background: rgba(35, 9, 56, 0.45);
-      border: 1px solid rgba(217, 70, 239, 0.35);
+      border: 1px solid rgba(217, 70, 239, 0.3);
       box-shadow: 0 0 20px rgba(217, 70, 239, 0.2);
       transform: rotate(-26deg);
       display: flex;
       align-items: center;
       justify-content: center;
       pointer-events: none;
-      opacity: 0.8;
+      opacity: 0.75;
       backdrop-filter: blur(2px);
     }
     .floating-card-right {
       position: absolute;
-      top: -16px;
-      right: -20px;
-      width: 100px;
-      height: 145px;
-      border-radius: 18px;
+      top: -12px;
+      right: -16px;
+      width: 80px;
+      height: 120px;
+      border-radius: 16px;
       background: rgba(35, 9, 56, 0.45);
-      border: 1px solid rgba(217, 70, 239, 0.35);
+      border: 1px solid rgba(217, 70, 239, 0.3);
       box-shadow: 0 0 20px rgba(217, 70, 239, 0.2);
       transform: rotate(26deg);
       display: flex;
       align-items: center;
       justify-content: center;
       pointer-events: none;
-      opacity: 0.8;
+      opacity: 0.75;
       backdrop-filter: blur(2px);
     }
-    .heart-icon {
-      width: 32px;
-      height: 32px;
+    .heart-icon, .star-icon {
+      width: 26px;
+      height: 26px;
       fill: #F43F9E;
       filter: drop-shadow(0 0 8px rgba(244, 63, 158, 0.9));
     }
-    .star-icon {
-      width: 32px;
-      height: 32px;
-      fill: #F43F9E;
-      filter: drop-shadow(0 0 8px rgba(244, 63, 158, 0.9));
-    }
-    /* Hero Badge */
-    .badge-wrap {
+    /* Central 3D Deck Box Hero */
+    .deck-hero-wrap {
       position: relative;
-      width: 116px;
-      height: 116px;
+      width: 150px;
+      height: 180px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-top: 8px;
+      margin: 0 auto;
+      flex-shrink: 0;
     }
-    .badge-blur {
+    .aura-glow {
       position: absolute;
-      inset: 0;
-      border-radius: 30px;
-      background: linear-gradient(135deg, #FF2E93, #D946EF, #8B5CF6);
-      filter: blur(18px);
-      opacity: 0.85;
-      animation: pulse 3s ease-in-out infinite alternate;
+      inset: 12px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 46, 147, 0.85) 0%, rgba(217, 70, 239, 0.65) 45%, rgba(139, 92, 246, 0.3) 70%, transparent 80%);
+      filter: blur(22px);
+      pointer-events: none;
+      animation: pulseGlow 3s ease-in-out infinite alternate;
     }
-    @keyframes pulse {
-      0% { opacity: 0.7; transform: scale(0.96); }
+    @keyframes pulseGlow {
+      0% { opacity: 0.75; transform: scale(0.96); }
       100% { opacity: 0.95; transform: scale(1.04); }
     }
-    .badge-squircle {
+    .ground-shadow {
+      position: absolute;
+      bottom: -6px;
+      width: 130px;
+      height: 14px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.85) 0%, rgba(112, 26, 117, 0.4) 60%, transparent 80%);
+      filter: blur(4px);
+      pointer-events: none;
+    }
+    .deck-canvas-box {
       position: relative;
       width: 100%;
       height: 100%;
-      border-radius: 28px;
-      background: linear-gradient(180deg, #2B0B47 0%, #18042B 65%, #120220 100%);
-      border: 2px solid rgba(244, 63, 158, 0.65);
-      box-shadow: 0 0 35px rgba(236, 72, 153, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
+      z-index: 10;
+      cursor: grab;
     }
-    .card-back {
-      position: absolute;
-      width: 48px;
-      height: 70px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #8A2BE2, #9B30FF, #6A0DAD);
-      border: 1px solid rgba(217, 70, 239, 0.5);
-      box-shadow: 0 0 14px rgba(168, 85, 247, 0.6);
-      transform: rotate(-16deg) translate(-10px, -2px);
+    .deck-canvas-box:active {
+      cursor: grabbing;
     }
-    .card-front {
-      position: absolute;
-      width: 48px;
-      height: 70px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #E026D8, #FF2E93, #C026D3);
-      border: 2px solid rgba(255, 210, 240, 0.85);
-      box-shadow: 0 0 20px rgba(236, 72, 153, 0.8);
-      transform: rotate(15deg) translate(10px, 2px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .card-star {
-      width: 22px;
-      height: 22px;
-      fill: #FDE047;
-      filter: drop-shadow(0 0 8px rgba(253, 224, 71, 0.95));
+    .deck-canvas-box canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
     }
     /* Branding */
     .title-group {
       text-align: center;
-      margin-top: 18px;
+      margin-top: 2px;
+      flex-shrink: 0;
     }
     .brand-title {
-      font-size: 34px;
+      font-size: 26px;
       font-weight: 900;
       font-style: italic;
       letter-spacing: -0.5px;
+      line-height: 1.1;
     }
     .brand-rv {
       color: #FFFFFF;
@@ -684,28 +680,32 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
     }
     .brand-subtitle {
       color: rgba(243, 232, 255, 0.85);
-      font-size: 13.5px;
+      font-size: 11.5px;
       font-weight: 600;
       letter-spacing: 0.2px;
+      margin-top: 3px;
+    }
+    .heart-divider-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       margin-top: 6px;
+      opacity: 0.9;
     }
-    .brand-arc {
-      position: relative;
-      width: 130px;
-      height: 10px;
-      margin: 8px auto 0;
-      overflow: hidden;
+    .heart-divider-line {
+      width: 44px;
+      height: 1.5px;
+      background: linear-gradient(to right, transparent, rgba(236, 72, 153, 0.75), #EC4899);
     }
-    .brand-arc::after {
-      content: '';
-      position: absolute;
-      top: -14px;
-      left: 0;
-      width: 130px;
-      height: 22px;
-      border-radius: 50%;
-      border-bottom: 2px solid #D946EF;
-      box-shadow: 0 4px 12px #D946EF;
+    .heart-divider-line-rev {
+      background: linear-gradient(to left, transparent, rgba(236, 72, 153, 0.75), #EC4899);
+    }
+    .heart-divider-svg {
+      width: 12px;
+      height: 12px;
+      fill: #F43F9E;
+      filter: drop-shadow(0 0 6px rgba(244, 63, 158, 0.95));
     }
     /* 3 Feature Pillars */
     .pillars-row {
@@ -713,9 +713,10 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
       align-items: center;
       justify-content: space-between;
       width: 100%;
-      max-width: 340px;
-      margin: 22px 0 10px;
+      max-width: 300px;
+      margin: 10px 0 4px;
       padding: 0 4px;
+      flex-shrink: 0;
     }
     .pillar-item {
       display: flex;
@@ -724,9 +725,9 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
       flex: 1;
     }
     .pillar-icon-box {
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.12);
       display: flex;
@@ -735,8 +736,8 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
       box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15);
     }
     .pillar-svg {
-      width: 20px;
-      height: 20px;
+      width: 17px;
+      height: 17px;
       stroke: #E9D5FF;
       stroke-width: 1.8;
       stroke-linecap: round;
@@ -744,16 +745,16 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
       fill: none;
     }
     .pillar-label {
-      font-size: 11px;
+      font-size: 9.5px;
       font-weight: 700;
       color: #E9D5FF;
       text-align: center;
-      line-height: 1.25;
-      margin-top: 7px;
+      line-height: 1.2;
+      margin-top: 4px;
     }
     .pillar-divider {
       width: 1px;
-      height: 28px;
+      height: 24px;
       background: rgba(255, 255, 255, 0.1);
     }
     /* Buttons */
@@ -762,19 +763,20 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
       max-width: 350px;
       display: flex;
       flex-direction: column;
-      gap: 13px;
+      gap: 10px;
       z-index: 10;
-      margin-bottom: 8px;
+      margin-bottom: 2px;
+      flex-shrink: 0;
     }
     .btn-google {
       width: 100%;
-      height: 56px;
-      padding: 0 22px;
+      height: 48px;
+      padding: 0 20px;
       border-radius: 9999px;
       background: #FFFFFF;
       color: #140224;
       font-weight: 800;
-      font-size: 15px;
+      font-size: 14px;
       text-decoration: none;
       display: flex;
       align-items: center;
@@ -791,23 +793,24 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
     .btn-google:active {
       transform: scale(0.98);
     }
-    /* Pagination Dots */
+    /* Subtle Pagination Dots */
     .dots-row {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 7px;
-      margin-top: 6px;
+      gap: 6px;
+      margin-top: 2px;
+      flex-shrink: 0;
     }
     .dot {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
       background: rgba(217, 70, 239, 0.4);
     }
     .dot-active {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       background: #FF2E93;
       box-shadow: 0 0 8px #FF2E93;
     }
@@ -831,17 +834,13 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
     </div>
 
     <!-- Center Content -->
-    <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin: auto 0;">
-      <!-- Hero Squircle Badge -->
-      <div class="badge-wrap">
-        <div class="badge-blur"></div>
-        <div class="badge-squircle">
-          <div class="card-back"></div>
-          <div class="card-front">
-            <svg class="card-star" viewBox="0 0 24 24">
-              <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
-            </svg>
-          </div>
+    <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin: auto 0; overflow: hidden;">
+      <!-- Central 3D Deck Box Hero -->
+      <div class="deck-hero-wrap">
+        <div class="aura-glow"></div>
+        <div class="ground-shadow"></div>
+        <div id="deckCanvasWrap" class="deck-canvas-box">
+          <img id="deckFallbackImg" src="/api/assets/textures/default_box_texture.webp" alt="RVStrangers Deck" style="position: absolute; inset: 4px; width: calc(100% - 8px); height: calc(100% - 8px); object-fit: contain; filter: drop-shadow(0 0 16px rgba(255,46,147,0.75)); transition: opacity 0.5s ease; pointer-events: none; border-radius: 12px; z-index: 1;" />
         </div>
       </div>
 
@@ -851,7 +850,13 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
           <span class="brand-rv">RV</span><span class="brand-strangers">Strangers</span>
         </h1>
         <p class="brand-subtitle">Built for meaningful connections.</p>
-        <div class="brand-arc"></div>
+        <div class="heart-divider-row">
+          <div class="heart-divider-line"></div>
+          <svg class="heart-divider-svg" viewBox="0 0 24 24">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+          <div class="heart-divider-line heart-divider-line-rev"></div>
+        </div>
       </div>
 
       <!-- 3 Feature Pillars -->
@@ -909,11 +914,11 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
             <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
           </svg>
         </div>
-        <span style="flex: 1; text-align: center; color: #140224; font-weight: 800; font-size: 15px;">
+        <span style="flex: 1; text-align: center; color: #140224; font-weight: 800; font-size: 14px;">
           Continue with Google
         </span>
         <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0;">
-          <svg style="width: 20px; height: 20px; stroke: #140224; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round;" viewBox="0 0 24 24">
+          <svg style="width: 18px; height: 18px; stroke: #140224; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round;" viewBox="0 0 24 24">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </div>
@@ -927,6 +932,158 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
       <div class="dot"></div>
     </div>
   </div>
+
+  <!-- Import Map & 3D Deck Box WebGL Module Script -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    try {
+      const container = document.getElementById('deckCanvasWrap');
+      if (container) {
+        const width = container.clientWidth || 150;
+        const height = container.clientHeight || 180;
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(36, width / height, 0.05, 10);
+        camera.position.set(0, 0, 0.24);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(width, height);
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        container.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.7);
+        scene.add(ambientLight);
+
+        const keyLight = new THREE.DirectionalLight(0xffffff, 3.2);
+        keyLight.position.set(-0.8, 1.8, 2.5);
+        scene.add(keyLight);
+
+        const rightRimLight = new THREE.DirectionalLight(0xff2e93, 4.6);
+        rightRimLight.position.set(2.5, 1.0, -0.6);
+        scene.add(rightRimLight);
+
+        const leftRimLight = new THREE.DirectionalLight(0xd946ef, 2.6);
+        leftRimLight.position.set(-2.5, 0.8, -0.6);
+        scene.add(leftRimLight);
+
+        const topLight = new THREE.DirectionalLight(0xf43f8e, 3.2);
+        topLight.position.set(0, 3.0, 0.1);
+        scene.add(topLight);
+
+        const bottomFill = new THREE.DirectionalLight(0xa855f7, 1.3);
+        bottomFill.position.set(0, -2.0, 1.0);
+        scene.add(bottomFill);
+
+        const pivotGroup = new THREE.Group();
+        scene.add(pivotGroup);
+        pivotGroup.rotation.x = 0.06;
+        pivotGroup.rotation.y = 0.32;
+
+        const gltfLoader = new GLTFLoader();
+        const textureLoader = new THREE.TextureLoader();
+
+        gltfLoader.load('/api/assets/models/default_box.glb', (gltf) => {
+          const model = gltf.scene;
+          const box = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+          model.position.set(-center.x, -center.y, -center.z);
+          pivotGroup.add(model);
+
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const fov = camera.fov * (Math.PI / 180);
+          const cameraDistance = (maxDim / 2) / Math.tan(fov / 2) * 1.22;
+          camera.position.z = Math.max(cameraDistance, 0.23);
+          camera.lookAt(0, 0, 0);
+
+          textureLoader.load('/api/assets/textures/default_box_texture.webp', (tex) => {
+            tex.colorSpace = THREE.SRGBColorSpace;
+            tex.flipY = false;
+            tex.wrapS = THREE.ClampToEdgeWrapping;
+            tex.wrapT = THREE.ClampToEdgeWrapping;
+            const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.22, metalness: 0.05 });
+            model.traverse((child) => {
+              if (child.isMesh) child.material = mat;
+            });
+            const fallback = document.getElementById('deckFallbackImg');
+            if (fallback) {
+              fallback.style.opacity = '0';
+              setTimeout(() => fallback.remove(), 500);
+            }
+          });
+        });
+
+        let isDragging = false;
+        let prevX = 0, prevY = 0;
+        let userRotY = 0, currentRotX = 0.06;
+        let velX = 0, velY = 0;
+        let lastTime = performance.now();
+
+        const onDown = (e) => {
+          isDragging = true;
+          const cx = e.touches ? e.touches[0].clientX : e.clientX;
+          const cy = e.touches ? e.touches[0].clientY : e.clientY;
+          prevX = cx; prevY = cy;
+          velX = 0; velY = 0;
+          lastTime = performance.now();
+        };
+
+        const onMove = (e) => {
+          if (!isDragging) return;
+          const cx = e.touches ? e.touches[0].clientX : e.clientX;
+          const cy = e.touches ? e.touches[0].clientY : e.clientY;
+          velX = (cx - prevX) * 0.012;
+          velY = (cy - prevY) * 0.012;
+          userRotY += velX;
+          currentRotX = Math.max(-0.65, Math.min(0.65, currentRotX + velY));
+          prevX = cx; prevY = cy;
+          lastTime = performance.now();
+        };
+
+        const onUp = () => { isDragging = false; };
+
+        const domEl = renderer.domElement;
+        domEl.addEventListener('mousedown', onDown);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+        domEl.addEventListener('touchstart', onDown, { passive: true });
+        window.addEventListener('touchmove', onMove, { passive: true });
+        window.addEventListener('touchend', onUp);
+
+        let clock = new THREE.Clock();
+        const animate = () => {
+          requestAnimationFrame(animate);
+          const elapsed = clock.getElapsedTime();
+          if (!isDragging) {
+            velX *= 0.92; velY *= 0.92;
+            userRotY += velX;
+            currentRotX = Math.max(-0.65, Math.min(0.65, currentRotX + velY));
+            if ((performance.now() - lastTime) / 1000 > 1.0) {
+              userRotY *= 0.96;
+              currentRotX += (0.06 - currentRotX) * 0.04;
+            }
+          }
+          pivotGroup.rotation.y = 0.32 + userRotY + Math.sin(elapsed * 1.1) * 0.12;
+          pivotGroup.rotation.x = currentRotX + Math.cos(elapsed * 0.8) * 0.03;
+          pivotGroup.position.y = Math.sin(elapsed * 1.5) * 0.0035;
+          renderer.render(scene, camera);
+        };
+        animate();
+      }
+    } catch (e) {
+      console.warn('3D preview init error:', e);
+    }
+  </script>
 </body>
 </html>`;
 }
