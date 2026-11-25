@@ -160,6 +160,32 @@ interface UserSessionResult {
   };
 }
 
+function parseInterestsJson(raw: any): string[] {
+  if (Array.isArray(raw)) return raw.map(String).slice(0, 6);
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.map(String).slice(0, 6);
+    } catch {}
+  }
+  return [];
+}
+
+function formatUserProfile(user: any) {
+  return {
+    id: user.id,
+    name: user.display_name,
+    email: user.email,
+    handle: user.username,
+    avatar: user.avatar_url,
+    gender: user.gender || 'unspecified',
+    bio: user.bio || '',
+    language: user.preferred_language || 'English',
+    interests: parseInterestsJson(user.interests),
+    isGuest: Boolean(user.is_guest),
+  };
+}
+
 // Helper: Securely find or create profile in D1 and issue session JWT
 async function createOrGetGoogleUserSession(googleUser: any, env: Env, secret: string): Promise<UserSessionResult> {
   const googleId = googleUser.sub;
@@ -205,14 +231,7 @@ async function createOrGetGoogleUserSession(googleUser: any, env: Env, secret: s
 
   return {
     token,
-    user: {
-      id: user.id,
-      name: user.display_name,
-      email: user.email,
-      handle: user.username,
-      avatar: user.avatar_url,
-      isGuest: false,
-    },
+    user: formatUserProfile(user),
     wallet: {
       coins: wallet.coins,
       diamonds: wallet.diamonds,
@@ -1627,14 +1646,7 @@ export default {
         return jsonResponse({
           success: true,
           token,
-          user: {
-            id: user.id,
-            name: user.display_name,
-            email: user.email,
-            handle: user.username,
-            avatar: user.avatar_url,
-            isGuest: false,
-          },
+          user: formatUserProfile(user),
           wallet: {
             coins: wallet.coins,
             diamonds: wallet.diamonds,
@@ -1692,16 +1704,7 @@ export default {
 
         return jsonResponse({
           success: true,
-          user: {
-            id: user.id,
-            name: user.display_name,
-            email: user.email,
-            handle: user.username,
-            avatar: user.avatar_url,
-            gender: user.gender,
-            bio: user.bio,
-            isGuest: isGuestUser,
-          },
+          user: formatUserProfile(user),
           wallet: {
             coins: wallet.coins,
             diamonds: wallet.diamonds,
@@ -1717,27 +1720,80 @@ export default {
         });
       }
 
-      // POST /api/profile (Update display name, handle, avatar in D1)
+      // GET /api/profile/check-username (Live username availability check)
+      if (url.pathname === '/api/profile/check-username' && method === 'GET') {
+        const auth = await authenticateRequest(request, env);
+        const raw = url.searchParams.get('username') || '';
+        const clean = raw.trim().replace(/^@+/, '').toLowerCase();
+        const valid = /^[a-z0-9_]{3,25}$/.test(clean);
+        if (!valid) {
+          return jsonResponse({ success: true, valid: false, available: false });
+        }
+        const existing = await env.DB.prepare(
+          auth
+            ? 'SELECT id FROM profiles WHERE LOWER(username) = ? AND id != ?'
+            : 'SELECT id FROM profiles WHERE LOWER(username) = ?'
+        ).bind(...(auth ? [clean, auth.sub] : [clean])).first();
+        return jsonResponse({ success: true, valid: true, available: !existing });
+      }
+
+      // POST /api/profile (Update display name, handle, avatar, gender, bio, language, interests in D1)
       if (url.pathname === '/api/profile' && method === 'POST') {
         const auth = await authenticateRequest(request, env);
         if (!auth) return errorResponse('Unauthorized', 401);
 
         const body: any = await request.json().catch(() => ({}));
-        const name = body.name ? String(body.name).trim().slice(0, 30) : null;
-        const handle = body.handle ? String(body.handle).trim().replace(/^@+/, '').slice(0, 25) : null;
-        const avatar = body.avatar ? String(body.avatar).trim().slice(0, 20) : null;
+        const name = body.name !== undefined ? String(body.name).trim().slice(0, 30) : null;
+        const rawHandle = body.handle !== undefined ? String(body.handle).trim().replace(/^@+/, '').toLowerCase().slice(0, 25) : null;
+        const avatar = body.avatar !== undefined ? String(body.avatar).trim().slice(0, 300) : null;
+        const gender = body.gender !== undefined ? String(body.gender).trim().slice(0, 32) : null;
+        const bio = body.bio !== undefined ? String(body.bio).trim().slice(0, 120) : null;
+        const language = body.language !== undefined ? String(body.language).trim().slice(0, 32) : null;
+        const interestsJson = Array.isArray(body.interests)
+          ? JSON.stringify(body.interests.map((x: any) => String(x).trim().slice(0, 30)).filter(Boolean).slice(0, 6))
+          : null;
 
-        if (name || handle || avatar) {
-          await env.DB.prepare(
-            `UPDATE profiles SET
-              display_name = COALESCE(?, display_name),
-              username = COALESCE(?, username),
-              avatar_url = COALESCE(?, avatar_url)
-             WHERE id = ?`
-          ).bind(name, handle, avatar, auth.sub).run();
+        if (rawHandle !== null) {
+          if (!/^[a-z0-9_]{3,25}$/.test(rawHandle)) {
+            return errorResponse('Username must be 3-25 characters (letters, numbers, underscores).', 400);
+          }
+          const conflict = await env.DB.prepare(
+            'SELECT id FROM profiles WHERE LOWER(username) = ? AND id != ?'
+          ).bind(rawHandle, auth.sub).first();
+          if (conflict) {
+            return errorResponse('That username is already taken.', 409);
+          }
         }
 
-        return jsonResponse({ success: true, message: 'Profile updated in D1' });
+        await env.DB.prepare(
+          `UPDATE profiles SET
+            display_name = COALESCE(?, display_name),
+            username = COALESCE(?, username),
+            avatar_url = COALESCE(?, avatar_url),
+            gender = COALESCE(?, gender),
+            bio = COALESCE(?, bio),
+            preferred_language = COALESCE(?, preferred_language),
+            interests = COALESCE(?, interests),
+            updated_at = datetime('now')
+           WHERE id = ?`
+        ).bind(
+          name || null,
+          rawHandle || null,
+          avatar || null,
+          gender || null,
+          bio !== null ? bio : null,
+          language || null,
+          interestsJson,
+          auth.sub
+        ).run();
+
+        const updatedUser: any = await env.DB.prepare('SELECT * FROM profiles WHERE id = ?').bind(auth.sub).first();
+
+        return jsonResponse({
+          success: true,
+          message: 'Profile updated in D1',
+          user: updatedUser ? formatUserProfile(updatedUser) : undefined,
+        });
       }
 
       // ========================================================

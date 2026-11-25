@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DEFAULT_AVATAR_PATH, resolveAvatarUrl } from '../utils/avatars';
 
 export type SetupStage = 'box_closed' | 'box_opening' | 'card_ready' | 'card_flipping' | 'card_flipped';
 
@@ -10,19 +11,26 @@ interface ProfileCard3DProps {
   selectedAvatar?: string;
   displayName?: string;
   handle?: string;
-  selectedMood?: string;
+  gender?: string;
+  bio?: string;
+  language?: string;
+  interests?: string[];
   onBoxClick?: () => void;
   onCardClick?: () => void;
   onOpeningFinished?: () => void;
   onFlipFinished?: () => void;
 }
 
-// Generates a 2x retina CanvasTexture of the Player Identity Card matching the HTML form exactly
+// Generates a 2x retina CanvasTexture of the ornate Identity Card matching the HTML prototype
 function createIdentityCardTexture(params: {
   avatar: string;
   displayName: string;
   handle: string;
-  mood: string;
+  gender: string;
+  bio: string;
+  language: string;
+  interests: string[];
+  avatarImg?: HTMLImageElement | null;
 }): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 660;
@@ -49,179 +57,230 @@ function createIdentityCardTexture(params: {
     }
   };
 
-  // 1. Base Card Surface (#1a052b) with Glowing Neon Border
+  // 1. Base Card Surface (#1a052b) with Ornate Glowing Neon Border
   ctx.save();
-  ctx.shadowColor = 'rgba(255, 46, 147, 0.7)';
-  ctx.shadowBlur = 28;
+  ctx.shadowColor = 'rgba(255, 46, 147, 0.75)';
+  ctx.shadowBlur = 32;
   ctx.strokeStyle = '#FF2E93';
-  ctx.lineWidth = 6;
+  ctx.lineWidth = 5;
   ctx.fillStyle = '#1a052b';
-  drawRoundRect(14, 14, 632, 932, 44);
+  drawRoundRect(16, 22, 628, 916, 48);
   ctx.fill();
   ctx.stroke();
   ctx.restore();
 
-  // 2. Card Header Strip
-  // Pink dot
-  ctx.fillStyle = '#FF2E93';
-  ctx.beginPath();
-  ctx.arc(46, 62, 6, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Header Title
-  ctx.font = 'bold 21px sans-serif';
-  ctx.fillStyle = '#F472B6';
-  ctx.fillText('PLAYER IDENTITY CARD', 64, 70);
-
-  // Header Badge: #001 • GENESIS
-  drawRoundRect(436, 44, 178, 36, 18);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(244, 114, 182, 0.25)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  ctx.font = 'bold 18px sans-serif';
-  ctx.fillStyle = '#E9D5FF';
-  ctx.fillText('#001 • GENESIS', 458, 68);
-
-  // Divider line
-  ctx.strokeStyle = 'rgba(255, 46, 147, 0.25)';
+  // Inner crystalline bevel line
+  ctx.strokeStyle = 'rgba(216, 180, 254, 0.2)';
   ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(34, 100);
-  ctx.lineTo(626, 100);
+  drawRoundRect(26, 32, 608, 896, 40);
   ctx.stroke();
 
-  // 3. Avatar Section
-  ctx.font = 'bold 19px sans-serif';
-  ctx.fillStyle = 'rgba(244, 114, 182, 0.95)';
-  ctx.fillText('Choose Avatar Symbol', 42, 136);
+  // Top & Bottom Diamond Crests
+  const drawDiamond = (cx: number, cy: number) => {
+    ctx.save();
+    ctx.shadowColor = '#FF2E93';
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = '#FF2E93';
+    ctx.strokeStyle = '#FCE7F3';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 18);
+    ctx.lineTo(cx + 15, cy);
+    ctx.lineTo(cx, cy + 18);
+    ctx.lineTo(cx - 15, cy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  };
+  drawDiamond(330, 22);
+  drawDiamond(330, 938);
 
-  // Glowing Avatar Emblem Portal
+  // 2. Subtle Orbital Glow behind Circular Avatar
+  const radial = ctx.createRadialGradient(330, 150, 20, 330, 150, 140);
+  radial.addColorStop(0, 'rgba(255, 46, 147, 0.35)');
+  radial.addColorStop(1, 'rgba(26, 5, 43, 0)');
+  ctx.fillStyle = radial;
+  ctx.fillRect(140, 40, 380, 220);
+
+  // 3. Circular Avatar Portal
+  const cx = 330;
+  const cy = 152;
+  const r = 82;
+
   ctx.save();
-  ctx.shadowColor = 'rgba(255, 46, 147, 0.8)';
-  ctx.shadowBlur = 24;
-  ctx.strokeStyle = 'rgba(255, 46, 147, 0.9)';
-  ctx.lineWidth = 4;
-  ctx.fillStyle = '#1a052b';
-  drawRoundRect(265, 148, 130, 130, 26);
+  ctx.shadowColor = 'rgba(255, 46, 147, 0.85)';
+  ctx.shadowBlur = 26;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
+  ctx.strokeStyle = '#FF2E93';
+  ctx.lineWidth = 5;
+  ctx.fillStyle = '#130322';
   ctx.fill();
   ctx.stroke();
   ctx.restore();
 
-  // Avatar Emoji
-  ctx.font = '64px sans-serif';
+  if (params.avatarImg && params.avatarImg.complete && params.avatarImg.naturalWidth > 0) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(params.avatarImg, cx - r, cy - r, r * 2, r * 2);
+    ctx.restore();
+  }
+
+  // Edit pencil badge at bottom-right of avatar circle
+  ctx.save();
+  ctx.fillStyle = '#3A105C';
+  ctx.strokeStyle = '#FF2E93';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(cx + 58, cy + 56, 20, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 18px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(params.avatar || '💜', 330, 238);
+  ctx.fillText('✎', cx + 58, cy + 62);
+  ctx.restore();
 
-  // Avatar Icons Row (💜, 🃏, ⚡, 👑, ⭐, 🎭)
-  const avatars = ['💜', '🃏', '⚡', '👑', '⭐', '🎭'];
-  const startX = 66;
-  const gap = 90;
-  avatars.forEach((av, idx) => {
-    const x = startX + idx * gap;
-    const y = 300;
-    const isSel = av === params.avatar;
-
-    drawRoundRect(x, y, 62, 62, 16);
-    if (isSel) {
-      ctx.fillStyle = 'rgba(255, 46, 147, 0.3)';
-      ctx.fill();
-      ctx.strokeStyle = '#FF2E93';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-    } else {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255, 46, 147, 0.2)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    }
-    ctx.font = '28px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(av, x + 31, y + 42);
-  });
-
-  // 4. Input Fields
+  // 4. Form Fields
   ctx.textAlign = 'left';
 
-  // Field A: Display Name
-  ctx.font = 'bold 18px sans-serif';
-  ctx.fillStyle = 'rgba(244, 114, 182, 0.9)';
-  ctx.fillText('DISPLAY NAME', 42, 404);
-
-  drawRoundRect(38, 418, 584, 66, 20);
-  ctx.fillStyle = 'rgba(19, 3, 34, 0.85)';
+  // Row 1: Nickname + Gender
+  drawRoundRect(42, 266, 356, 76, 20);
+  ctx.fillStyle = 'rgba(19, 3, 34, 0.78)';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255, 46, 147, 0.4)';
+  ctx.strokeStyle = 'rgba(244, 114, 182, 0.28)';
   ctx.lineWidth = 2;
   ctx.stroke();
 
+  ctx.font = '17px sans-serif';
+  ctx.fillStyle = 'rgba(216, 180, 254, 0.72)';
+  ctx.fillText('Nickname', 86, 294);
   ctx.font = 'bold 22px sans-serif';
   ctx.fillStyle = '#FFFFFF';
-  ctx.fillText(params.displayName || 'John Don', 96, 460);
-  ctx.fillStyle = '#F472B6';
-  ctx.font = '20px sans-serif';
-  ctx.fillText('👤', 58, 459);
+  ctx.fillText((params.displayName || 'John Don').slice(0, 18), 86, 326);
 
-  // Field B: Player Tag
-  ctx.font = 'bold 18px sans-serif';
-  ctx.fillStyle = 'rgba(244, 114, 182, 0.9)';
-  ctx.fillText('PLAYER TAG', 42, 524);
-
-  drawRoundRect(38, 538, 584, 66, 20);
-  ctx.fillStyle = 'rgba(19, 3, 34, 0.85)';
+  drawRoundRect(410, 266, 208, 76, 20);
+  ctx.fillStyle = 'rgba(19, 3, 34, 0.78)';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255, 46, 147, 0.4)';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(244, 114, 182, 0.28)';
   ctx.stroke();
-
-  ctx.font = 'bold 22px sans-serif';
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillText(params.handle || '@samplemail1247', 96, 580);
-  ctx.fillStyle = '#F472B6';
-  ctx.font = '20px sans-serif';
-  ctx.fillText('@', 60, 579);
-
-  // Field C: Conversation Vibe
-  ctx.font = 'bold 18px sans-serif';
-  ctx.fillStyle = 'rgba(244, 114, 182, 0.9)';
-  ctx.fillText('CONVERSATION VIBE', 42, 644);
-
-  drawRoundRect(38, 658, 584, 66, 20);
-  ctx.fillStyle = '#1a052b';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255, 46, 147, 0.4)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.font = 'bold 20px sans-serif';
+  ctx.font = 'bold 21px sans-serif';
   ctx.fillStyle = '#F3E8FF';
-  ctx.fillText(params.mood || 'Here for deep conversations', 96, 699);
-  ctx.fillStyle = '#F472B6';
-  ctx.font = '20px sans-serif';
-  ctx.fillText('💬', 58, 698);
-  ctx.fillText('▼', 584, 698);
+  const genderLabel =
+    params.gender && params.gender !== 'unspecified'
+      ? params.gender.charAt(0).toUpperCase() + params.gender.slice(1)
+      : 'Gender';
+  ctx.fillText(genderLabel.slice(0, 10), 438, 312);
 
-  // 5. Action Button
-  const btnGrad = ctx.createLinearGradient(38, 768, 622, 768);
-  btnGrad.addColorStop(0, '#FF2E93');
-  btnGrad.addColorStop(0.5, '#D946EF');
-  btnGrad.addColorStop(1, '#8B5CF6');
-
-  ctx.save();
-  ctx.shadowColor = 'rgba(255, 46, 147, 0.6)';
-  ctx.shadowBlur = 28;
-  drawRoundRect(38, 768, 584, 84, 26);
-  ctx.fillStyle = btnGrad;
+  // Row 2: Username
+  drawRoundRect(42, 358, 576, 76, 20);
+  ctx.fillStyle = 'rgba(19, 3, 34, 0.78)';
   ctx.fill();
-  ctx.restore();
+  ctx.strokeStyle = 'rgba(244, 114, 182, 0.28)';
+  ctx.stroke();
 
   ctx.font = 'bold 24px sans-serif';
+  ctx.fillStyle = '#F472B6';
+  ctx.fillText('@', 58, 405);
+  ctx.font = '17px sans-serif';
+  ctx.fillStyle = 'rgba(216, 180, 254, 0.72)';
+  ctx.fillText('Username', 92, 386);
+  ctx.font = 'bold 22px sans-serif';
   ctx.fillStyle = '#FFFFFF';
-  ctx.textAlign = 'center';
-  ctx.fillText('✓  Save Identity & Enter', 330, 820);
+  ctx.fillText((params.handle || 'stranger').replace(/^@+/, '').slice(0, 22), 92, 418);
+  ctx.fillStyle = '#34D399';
+  ctx.font = 'bold 24px sans-serif';
+  ctx.fillText('✓', 580, 405);
+
+  // Row 3: Bio
+  drawRoundRect(42, 450, 576, 128, 20);
+  ctx.fillStyle = 'rgba(19, 3, 34, 0.78)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(244, 114, 182, 0.28)';
+  ctx.stroke();
+
+  ctx.font = '17px sans-serif';
+  ctx.fillStyle = 'rgba(216, 180, 254, 0.72)';
+  ctx.fillText('Bio', 86, 480);
+  ctx.font = '600 20px sans-serif';
+  ctx.fillStyle = '#F5F3FF';
+  const bioStr = params.bio || 'Here for deep conversations and interesting people.';
+  const words = bioStr.split(' ');
+  let line1 = '';
+  let line2 = '';
+  for (const w of words) {
+    if ((line1 + ' ' + w).trim().length <= 36 && !line2) {
+      line1 = (line1 + ' ' + w).trim();
+    } else if ((line2 + ' ' + w).trim().length <= 36) {
+      line2 = (line2 + ' ' + w).trim();
+    }
+  }
+  ctx.fillText(line1, 86, 514);
+  if (line2) {
+    ctx.fillText(line2, 86, 542);
+  }
+  ctx.font = '16px sans-serif';
+  ctx.fillStyle = 'rgba(216, 180, 254, 0.6)';
+  ctx.textAlign = 'right';
+  ctx.fillText(`${bioStr.length} / 120`, 600, 562);
+  ctx.textAlign = 'left';
+
+  // Row 4: Language
+  drawRoundRect(42, 594, 576, 76, 20);
+  ctx.fillStyle = 'rgba(19, 3, 34, 0.78)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(244, 114, 182, 0.28)';
+  ctx.stroke();
+
+  ctx.font = '17px sans-serif';
+  ctx.fillStyle = 'rgba(216, 180, 254, 0.72)';
+  ctx.fillText('Language', 86, 622);
+  ctx.font = 'bold 22px sans-serif';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillText(params.language || 'English', 86, 654);
+
+  // Row 5: Interests (up to 6)
+  ctx.font = 'bold 20px sans-serif';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillText('Interests', 52, 710);
+  ctx.font = '17px sans-serif';
+  ctx.fillStyle = 'rgba(216, 180, 254, 0.72)';
+  ctx.fillText('(up to 6)', 148, 710);
+
+  const tags = ['Games', 'Music', 'Psychology', 'Movies', 'Travel', 'Food'];
+  tags.forEach((tag, i) => {
+    const col = i % 3;
+    const row = Math.floor(i / 3);
+    const px = 42 + col * 195;
+    const py = 732 + row * 68;
+    const active = params.interests.includes(tag);
+
+    drawRoundRect(px, py, 182, 54, 27);
+    if (active) {
+      const grad = ctx.createLinearGradient(px, py, px + 182, py);
+      grad.addColorStop(0, '#FF2E93');
+      grad.addColorStop(1, '#C026D3');
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(251, 207, 232, 0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(19, 3, 34, 0.65)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(192, 132, 252, 0.28)';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+    }
+
+    ctx.font = 'bold 19px sans-serif';
+    ctx.fillStyle = active ? '#FFFFFF' : '#E9D5FF';
+    ctx.textAlign = 'center';
+    ctx.fillText(active ? `✓ ${tag}` : tag, px + 91, py + 34);
+  });
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -231,10 +290,13 @@ function createIdentityCardTexture(params: {
 export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
   className = 'w-full h-full',
   stage,
-  selectedAvatar = '💜',
+  selectedAvatar = DEFAULT_AVATAR_PATH,
   displayName = 'John Don',
-  handle = '@samplemail1247',
-  selectedMood = 'Here for deep conversations',
+  handle = 'johndon1247',
+  gender = 'unspecified',
+  bio = 'Here for deep conversations and interesting people.',
+  language = 'English',
+  interests = ['Games', 'Music', 'Psychology'],
   onBoxClick,
   onCardClick,
   onOpeningFinished,
@@ -243,23 +305,31 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
   const mountRef = useRef<HTMLDivElement>(null);
   const [isAssetsLoaded, setIsAssetsLoaded] = useState(false);
 
-  // References to keep callbacks current in the Three.js animation loop
+  // References to keep values current in the Three.js animation loop & async loaders
   const stageRef = useRef<SetupStage>(stage);
   stageRef.current = stage;
 
-  const selectedAvatarRef = useRef(selectedAvatar);
-  selectedAvatarRef.current = selectedAvatar;
-
-  const displayNameRef = useRef(displayName);
-  displayNameRef.current = displayName;
-
-  const handleRef = useRef(handle);
-  handleRef.current = handle;
-
-  const selectedMoodRef = useRef(selectedMood);
-  selectedMoodRef.current = selectedMood;
+  const profileDataRef = useRef({
+    avatar: selectedAvatar,
+    displayName,
+    handle,
+    gender,
+    bio,
+    language,
+    interests,
+  });
+  profileDataRef.current = {
+    avatar: selectedAvatar,
+    displayName,
+    handle,
+    gender,
+    bio,
+    language,
+    interests,
+  };
 
   const backMeshRef = useRef<THREE.Mesh | null>(null);
+  const avatarImgRef = useRef<HTMLImageElement | null>(null);
 
   const onBoxClickRef = useRef(onBoxClick);
   onBoxClickRef.current = onBoxClick;
@@ -273,21 +343,42 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
   const onFlipFinishedRef = useRef(onFlipFinished);
   onFlipFinishedRef.current = onFlipFinished;
 
-  // Dynamically update the back texture whenever profile values change
+  const applyBackTexture = () => {
+    if (!backMeshRef.current) return;
+    const p = profileDataRef.current;
+    const newTex = createIdentityCardTexture({
+      avatar: p.avatar || DEFAULT_AVATAR_PATH,
+      displayName: p.displayName || 'John Don',
+      handle: p.handle || 'johndon1247',
+      gender: p.gender || 'unspecified',
+      bio: p.bio || '',
+      language: p.language || 'English',
+      interests: p.interests || [],
+      avatarImg: avatarImgRef.current,
+    });
+    const mat = backMeshRef.current.material as THREE.MeshStandardMaterial;
+    if (mat.map) mat.map.dispose();
+    mat.map = newTex;
+    mat.needsUpdate = true;
+  };
+
+  // Load avatar image & refresh back texture whenever profile values change
   useEffect(() => {
-    if (backMeshRef.current) {
-      const newTex = createIdentityCardTexture({
-        avatar: selectedAvatar || '💜',
-        displayName: displayName || 'John Don',
-        handle: handle || '@samplemail1247',
-        mood: selectedMood || 'Here for deep conversations',
-      });
-      const mat = backMeshRef.current.material as THREE.MeshStandardMaterial;
-      if (mat.map) mat.map.dispose();
-      mat.map = newTex;
-      mat.needsUpdate = true;
-    }
-  }, [selectedAvatar, displayName, handle, selectedMood]);
+    let cancelled = false;
+    const resolvedUrl = resolveAvatarUrl(selectedAvatar);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      if (cancelled) return;
+      avatarImgRef.current = img;
+      applyBackTexture();
+    };
+    img.src = resolvedUrl;
+    applyBackTexture();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedAvatar, displayName, handle, gender, bio, language, interests]);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -443,11 +534,16 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
         cardPivotGroup.add(cardScene);
 
         // ATTACH THE PLAYER IDENTITY CARD DIRECTLY ONTO THE OTHER SIDE OF THE CARD SURFACE
+        const p = profileDataRef.current;
         const identityTex = createIdentityCardTexture({
-          avatar: selectedAvatarRef.current || '💜',
-          displayName: displayNameRef.current || 'John Don',
-          handle: handleRef.current || '@samplemail1247',
-          mood: selectedMoodRef.current || 'Here for deep conversations',
+          avatar: p.avatar || DEFAULT_AVATAR_PATH,
+          displayName: p.displayName || 'John Don',
+          handle: p.handle || 'johndon1247',
+          gender: p.gender || 'unspecified',
+          bio: p.bio || '',
+          language: p.language || 'English',
+          interests: p.interests || [],
+          avatarImg: avatarImgRef.current,
         });
 
         const backGeo = new THREE.PlaneGeometry(0.0792, 0.1180);

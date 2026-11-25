@@ -6,6 +6,10 @@ export interface AuthUser {
   email?: string;
   handle: string;
   avatar: string;
+  gender?: string;
+  bio?: string;
+  language?: string;
+  interests?: string[];
   isGuest: boolean;
   createdAt: string;
 }

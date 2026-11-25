@@ -1,5 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../store/useGameStore';
+import { resolveAvatarUrl } from '../utils/avatars';
 import { MessageSquare, Users, Bell } from 'lucide-react';
 
 export const TopNav: React.FC = () => {
@@ -16,9 +17,9 @@ export const TopNav: React.FC = () => {
       >
         <div className="relative">
           <img 
-            src={currentUser?.avatar || "https://api.dicebear.com/7.x/bottts/svg?seed=alex"} 
+            src={resolveAvatarUrl(currentUser?.avatar)} 
             alt={currentUser?.name || "Player"} 
-            className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#351057] p-0.5 border-2 border-accent shadow-md group-hover:scale-105 active:scale-95 transition-all"
+            className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover bg-[#351057] p-0.5 border-2 border-accent shadow-md group-hover:scale-105 active:scale-95 transition-all"
           />
           <span className={`absolute bottom-0 right-0 w-3 h-3 ${isGuest ? 'bg-amber-400' : 'bg-emerald-500'} border-2 border-[#1A052B] rounded-full shadow`} />
         </div>

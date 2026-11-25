@@ -1,43 +1,151 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { ProfileCard3D, SetupStage } from './ProfileCard3D';
-import { Sparkles, User, RotateCcw, Check, AtSign, MessageCircle } from 'lucide-react';
+import { AVATAR_OPTIONS, DEFAULT_AVATAR_PATH, resolveAvatarUrl } from '../utils/avatars';
+import { api } from '../services/api';
+import {
+  Sparkles,
+  User,
+  RotateCcw,
+  Check,
+  AtSign,
+  Quote,
+  Globe,
+  Tag,
+  Pencil,
+  ChevronDown,
+  X,
+  AlertCircle,
+} from 'lucide-react';
 
-const AVATARS = [
-  { id: 'heart', emoji: '💜', label: 'Heart', color: 'from-pink-500 to-purple-600' },
-  { id: 'joker', emoji: '🃏', label: 'Card', color: 'from-fuchsia-500 to-pink-600' },
-  { id: 'spark', emoji: '⚡', label: 'Electric', color: 'from-amber-400 to-pink-500' },
-  { id: 'crown', emoji: '👑', label: 'Royalty', color: 'from-yellow-400 to-amber-600' },
-  { id: 'star', emoji: '🌟', label: 'Star', color: 'from-purple-400 to-pink-500' },
-  { id: 'mask', emoji: '🎭', label: 'Mystic', color: 'from-violet-500 to-indigo-600' },
+const GENDERS = [
+  { value: 'unspecified', label: 'Gender' },
+  { value: 'female', label: 'Female' },
+  { value: 'male', label: 'Male' },
+  { value: 'non-binary', label: 'Non-binary' },
+  { value: 'prefer-not-to-say', label: 'Prefer not to say' },
 ];
 
-const MOODS = [
-  'Here for deep conversations',
-  'Ready to meet new friends',
-  'Card game enthusiast',
-  'Just chilling & playing',
+const LANGUAGES = [
+  'English',
+  'Spanish',
+  'French',
+  'German',
+  'Hindi',
+  'Portuguese',
+  'Japanese',
+  'Korean',
+  'Arabic',
 ];
+
+const INTEREST_OPTIONS = ['Games', 'Music', 'Psychology', 'Movies', 'Travel', 'Food'];
+
+/** Crisp SVG diamond ornament matching the top & bottom card crest */
+const CardDiamondCrest: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <svg
+    viewBox="0 0 36 28"
+    className={`w-7 h-5 drop-shadow-[0_0_10px_rgba(255,46,147,0.95)] pointer-events-none ${className}`}
+    fill="none"
+  >
+    <defs>
+      <linearGradient id="crestGrad" x1="0" y1="0" x2="36" y2="28" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#F9A8D4" />
+        <stop offset="45%" stopColor="#FF2E93" />
+        <stop offset="100%" stopColor="#A855F7" />
+      </linearGradient>
+    </defs>
+    <path
+      d="M18 1L25.5 14L18 27L10.5 14L18 1Z"
+      fill="url(#crestGrad)"
+      stroke="#FCE7F3"
+      strokeWidth="1.2"
+    />
+    <path d="M18 4.5L22.5 14L18 23.5L13.5 14L18 4.5Z" fill="#FDF2F8" fillOpacity="0.32" />
+    <path d="M2 14H10.5M25.5 14H34" stroke="#F472B6" strokeWidth="1.4" strokeLinecap="round" />
+  </svg>
+);
 
 export const ProfileSetupView: React.FC = () => {
-  const { currentUser, updateUserProfile, setScreen } = useGameStore();
+  const { currentUser, token, updateUserProfile, setScreen, showToast } = useGameStore();
 
   const [stage, setStage] = useState<SetupStage>('box_closed');
-  
-  // Profile form state initialized from Google OAuth profile data
+
+  // Normalize initial handle (lowercase alphanumeric/underscore without leading @)
+  const initialCleanHandle = (currentUser?.handle || currentUser?.email?.split('@')[0] || 'stranger')
+    .replace(/^@+/, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '_')
+    .slice(0, 25);
+
   const [displayName, setDisplayName] = useState(currentUser?.name || '');
-  const [handle, setHandle] = useState(
-    currentUser?.handle ? (currentUser.handle.startsWith('@') ? currentUser.handle : `@${currentUser.handle}`) : '@stranger'
+  const [username, setUsername] = useState(initialCleanHandle || 'stranger');
+  const [gender, setGender] = useState(currentUser?.gender || 'unspecified');
+  const [bio, setBio] = useState(
+    currentUser?.bio || 'Here for deep conversations and interesting people.'
   );
-  const [selectedAvatar, setSelectedAvatar] = useState('💜');
-  const [selectedMood, setSelectedMood] = useState(MOODS[0]);
+  const [language, setLanguage] = useState(
+    currentUser?.language && LANGUAGES.includes(currentUser.language) ? currentUser.language : 'English'
+  );
+  const [interests, setInterests] = useState<string[]>(
+    currentUser?.interests && currentUser.interests.length > 0
+      ? currentUser.interests.slice(0, 6)
+      : ['Games', 'Music', 'Psychology']
+  );
+
+  // Use local public avatar as default (fall back from emoji/empty if needed)
+  const initialAvatar =
+    currentUser?.avatar && (currentUser.avatar.includes('/') || currentUser.avatar.startsWith('http'))
+      ? currentUser.avatar
+      : DEFAULT_AVATAR_PATH;
+  const [selectedAvatar, setSelectedAvatar] = useState<string>(initialAvatar);
+  const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false);
+
+  const [usernameStatus, setUsernameStatus] = useState<'valid' | 'taken' | 'invalid' | 'checking'>('valid');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const checkTimerRef = useRef<number | null>(null);
+
+  // Live username format & availability check
+  useEffect(() => {
+    const clean = username.trim().replace(/^@+/, '').toLowerCase();
+    if (!/^[a-z0-9_]{3,25}$/.test(clean)) {
+      setUsernameStatus('invalid');
+      return;
+    }
+
+    // Matches user's existing handle -> always available
+    if (clean === (currentUser?.handle || '').replace(/^@+/, '').toLowerCase()) {
+      setUsernameStatus('valid');
+      return;
+    }
+
+    setUsernameStatus('checking');
+    if (checkTimerRef.current) window.clearTimeout(checkTimerRef.current);
+    checkTimerRef.current = window.setTimeout(async () => {
+      const res = await api.checkUsername(clean, token);
+      setUsernameStatus(res.valid && res.available ? 'valid' : res.valid ? 'taken' : 'invalid');
+    }, 350);
+
+    return () => {
+      if (checkTimerRef.current) window.clearTimeout(checkTimerRef.current);
+    };
+  }, [username, token, currentUser?.handle]);
+
+  const toggleInterest = (tag: string) => {
+    setInterests((prev) => {
+      if (prev.includes(tag)) {
+        return prev.filter((item) => item !== tag);
+      }
+      if (prev.length >= 6) {
+        showToast('You can select up to 6 interests.');
+        return prev;
+      }
+      return [...prev, tag];
+    });
+  };
 
   // 1. Box Click: Opens lid & reveals card
   const handleBoxClick = () => {
-    if (stage === 'box_closed') {
-      setStage('box_opening');
-    }
+    if (stage === 'box_closed') setStage('box_opening');
   };
 
   // 2. Opening & Emergence Finished
@@ -47,9 +155,7 @@ export const ProfileSetupView: React.FC = () => {
 
   // 3. Card Click: Initiates zoom-in & 180° flip
   const handleCardClick = () => {
-    if (stage === 'card_ready') {
-      setStage('card_flipping');
-    }
+    if (stage === 'card_ready') setStage('card_flipping');
   };
 
   // 4. Flip & Zoom Finished: Form on Card Becomes Active
@@ -58,17 +164,34 @@ export const ProfileSetupView: React.FC = () => {
   };
 
   // Form submit handler
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveProfile = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (isSubmitting) return;
-    setIsSubmitting(true);
 
-    const cleanHandle = handle.trim().replace(/^@+/, '');
-    await updateUserProfile({
+    const cleanHandle = username.trim().replace(/^@+/, '').toLowerCase();
+    if (!/^[a-z0-9_]{3,25}$/.test(cleanHandle)) {
+      showToast('Username must be 3–25 letters, numbers, or underscores.');
+      setUsernameStatus('invalid');
+      return;
+    }
+    if (usernameStatus === 'taken') {
+      showToast('That username is already taken. Try another!');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const ok = await updateUserProfile({
       name: displayName.trim() || currentUser?.name || 'Adventurer',
-      handle: cleanHandle ? `@${cleanHandle}` : currentUser?.handle || '@stranger',
+      handle: cleanHandle,
       avatar: selectedAvatar,
+      gender,
+      bio: bio.trim(),
+      language,
+      interests,
     });
+    if (!ok) {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSkip = () => {
@@ -76,57 +199,101 @@ export const ProfileSetupView: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] max-h-[100dvh] bg-[#07000E] text-white flex flex-col items-center justify-between overflow-hidden select-none px-3 py-2 sm:py-3 font-comfortaa">
-      {/* Background Ambient Radial Glows */}
-      <div className="fixed -top-28 -left-28 w-80 h-80 rounded-full bg-gradient-to-br from-[#FF2E93]/20 via-[#D946EF]/10 to-transparent blur-[90px] pointer-events-none" />
-      <div className="fixed -bottom-28 -right-28 w-80 h-80 rounded-full bg-gradient-to-tl from-[#D946EF]/20 via-[#8B5CF6]/10 to-transparent blur-[90px] pointer-events-none" />
+    <div className="fixed inset-0 w-full h-[100dvh] max-h-[100dvh] bg-[#07000E] text-white flex flex-col items-center justify-between overflow-hidden select-none px-3.5 py-2.5 sm:py-4 font-comfortaa">
+      {/* Ambient Cyberpunk Radial Glows */}
+      <div className="fixed -top-28 -left-24 w-80 h-80 rounded-full bg-gradient-to-br from-[#FF2E93]/25 via-[#D946EF]/10 to-transparent blur-[95px] pointer-events-none" />
+      <div className="fixed -bottom-28 -right-24 w-80 h-80 rounded-full bg-gradient-to-tl from-[#D946EF]/25 via-[#8B5CF6]/15 to-transparent blur-[95px] pointer-events-none" />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[460px] rounded-full bg-[#C026D3]/10 blur-[100px] pointer-events-none" />
 
-      {/* Top Header & Induction Tag */}
-      <div className="w-full max-w-md flex flex-col items-center text-center z-10 shrink-0 mt-0.5">
-        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/[0.04] border border-pink-500/25 text-[10px] font-bold tracking-wide text-pink-300 shadow-[0_0_12px_rgba(255,46,147,0.15)] mb-1">
-          <Sparkles className="w-3 h-3 text-pink-400" />
-          <span>
-            {stage === 'box_closed' && 'Step 1 of 3: Open Deck'}
-            {stage === 'box_opening' && 'Step 1 of 3: Unboxing...'}
-            {stage === 'card_ready' && 'Step 2 of 3: Tap to Reveal Identity'}
-            {stage === 'card_flipping' && 'Step 2 of 3: Revealing Identity...'}
-            {stage === 'card_flipped' && 'Step 3 of 3: Personalize Your Card'}
+      {/* ======================================================== */}
+      {/* TOP HEADER                                               */}
+      {/* ======================================================== */}
+      <header className="w-full max-w-[380px] flex flex-col items-center text-center z-20 shrink-0 relative">
+        {/* Subtle top-right Skip button during personalization */}
+        {stage === 'card_flipped' && (
+          <button
+            type="button"
+            onClick={handleSkip}
+            className="absolute right-0 top-0 text-[10.5px] font-semibold text-purple-300/70 hover:text-white px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10 transition-colors"
+          >
+            Skip
+          </button>
+        )}
+
+        {/* RVStrangers Card Logo Brand Strip */}
+        <div className="flex items-center justify-center gap-1.5 mb-0.5">
+          <div className="relative w-5 h-5 flex items-center justify-center">
+            <div className="w-4 h-4 rounded-[4px] border border-pink-400/90 bg-[#25073E] -rotate-6 flex items-center justify-center shadow-[0_0_8px_rgba(255,46,147,0.6)]">
+              <span className="text-[7px] font-black text-white leading-none">RV</span>
+            </div>
+          </div>
+          <span className="text-sm sm:text-base font-black italic tracking-tight leading-none">
+            <span className="text-white">RV</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF3EA5] via-[#F43F9E] to-[#E026D8]">
+              Strangers
+            </span>
           </span>
         </div>
-        <h1 className="text-xl sm:text-2xl font-black italic tracking-tight leading-none">
-          <span className="text-white">RV</span>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF3EA5] via-[#F43F9E] to-[#E026D8] drop-shadow-[0_0_15px_rgba(244,63,158,0.5)]">
-            Strangers
-          </span>
-        </h1>
-        <p className="text-[11px] text-purple-200/80 mt-1 max-w-[300px] leading-tight">
-          {stage === 'box_closed' && 'Your personal conversation deck is ready. Tap the box to open.'}
-          {stage === 'box_opening' && 'Opening deck box and drawing your card...'}
-          {stage === 'card_ready' && 'Your card has emerged! Tap it to reveal your identity card.'}
-          {stage === 'card_flipping' && 'Revealing player identity card...'}
-          {stage === 'card_flipped' && 'Customize your identity directly on the card.'}
-        </p>
-      </div>
+
+        {/* Dynamic Heading */}
+        {stage === 'card_flipped' ? (
+          <>
+            <h1 className="text-[17px] sm:text-xl font-extrabold tracking-tight leading-tight">
+              <span className="text-white">Personalize Your </span>
+              <span className="italic pr-1.5 text-transparent bg-clip-text bg-gradient-to-r from-[#FF3EA5] via-[#F43F9E] to-[#E026D8] drop-shadow-[0_0_12px_rgba(244,63,158,0.45)]">
+                Identity Card
+              </span>
+            </h1>
+            <p className="text-[10.5px] sm:text-xs text-purple-200/75 mt-0.5 leading-tight">
+              Set up your profile the way you want.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/[0.04] border border-pink-500/25 text-[10px] font-bold tracking-wide text-pink-300 shadow-[0_0_12px_rgba(255,46,147,0.15)] my-0.5">
+              <Sparkles className="w-3 h-3 text-pink-400" />
+              <span>
+                {stage === 'box_closed' && 'Step 1 of 3: Open Deck'}
+                {stage === 'box_opening' && 'Step 1 of 3: Unboxing...'}
+                {stage === 'card_ready' && 'Step 2 of 3: Tap to Reveal Identity'}
+                {stage === 'card_flipping' && 'Step 2 of 3: Revealing Identity...'}
+              </span>
+            </div>
+            <p className="text-[11px] text-purple-200/80 mt-0.5 max-w-[300px] leading-tight">
+              {stage === 'box_closed' && 'Your personal conversation deck is ready. Tap the box to open.'}
+              {stage === 'box_opening' && 'Opening deck box and drawing your card...'}
+              {stage === 'card_ready' && 'Your card has emerged! Tap it to reveal your identity card.'}
+              {stage === 'card_flipping' && 'Revealing player identity card...'}
+            </p>
+          </>
+        )}
+      </header>
 
       {/* ======================================================== */}
-      {/* CENTER STAGE: 3D UNBOXING OR ZOOMED INTERACTIVE CARD     */}
+      {/* CENTER STAGE: 3D UNBOXING OR ORNATE IDENTITY CARD        */}
       {/* ======================================================== */}
-      <div className="relative w-full max-w-[350px] flex-1 flex flex-col items-center justify-center my-auto min-h-0">
-        
-        {/* Stages 1 to 4: 3D Box & Emerging/Flipping Card (stays mounted behind so transitions are seamless) */}
-        <div className={`relative w-full h-full min-h-[260px] max-h-[460px] flex items-center justify-center ${stage === 'card_flipped' ? 'absolute inset-0 pointer-events-none opacity-0' : ''}`}>
-          {/* Ground shadow beneath box */}
+      <div className="relative w-full max-w-[370px] flex-1 flex flex-col items-center justify-center my-auto min-h-0">
+        {/* 3D WebGL Canvas (stays mounted behind so transitions are seamless) */}
+        <div
+          className={
+            stage === 'card_flipped'
+              ? 'absolute inset-0 pointer-events-none opacity-0'
+              : 'relative w-full h-full min-h-[260px] max-h-[460px] flex items-center justify-center'
+          }
+        >
           {stage !== 'card_flipped' && (
             <div className="absolute bottom-4 w-40 h-4 rounded-[100%] bg-black/80 blur-md pointer-events-none" />
           )}
 
-          {/* 3D WebGL Canvas */}
           <ProfileCard3D
             stage={stage}
             selectedAvatar={selectedAvatar}
             displayName={displayName}
-            handle={handle}
-            selectedMood={selectedMood}
+            handle={username}
+            gender={gender}
+            bio={bio}
+            language={language}
+            interests={interests}
             onBoxClick={handleBoxClick}
             onCardClick={handleCardClick}
             onOpeningFinished={handleOpeningFinished}
@@ -134,134 +301,241 @@ export const ProfileSetupView: React.FC = () => {
           />
         </div>
 
-        {/* Stage 5: The Zoomed Card Itself as the Interactive Profile Card */}
+        {/* STAGE 5: ORNATE PROTOTYPE IDENTITY CARD */}
         {stage === 'card_flipped' && (
-          <div className="w-full max-w-[330px] rounded-3xl bg-[#1a052b] border-2 border-[#FF2E93]/75 p-4 shadow-[0_0_35px_rgba(255,46,147,0.4)] relative overflow-hidden animate-fade-in flex flex-col justify-between space-y-3 shrink-0 z-20">
-            {/* Card Header Strip */}
-            <div className="flex items-center justify-between border-b border-pink-500/25 pb-2 relative z-10">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-pink-500 animate-ping" />
-                <span className="text-[10.5px] font-black tracking-wider text-pink-300 uppercase">
-                  Player Identity Card
-                </span>
-              </div>
-              <div className="flex items-center gap-1 text-[9px] font-bold text-purple-200 bg-white/[0.08] px-2 py-0.5 rounded-full border border-pink-400/20">
-                <span>#001</span>
-                <span>•</span>
-                <span>GENESIS</span>
-              </div>
+          <form
+            id="profile-identity-form"
+            onSubmit={handleSaveProfile}
+            className="w-full max-w-[360px] relative rounded-[28px] bg-[#1a052b] border-[1.5px] border-[#FF2E93]/80 shadow-[0_0_38px_rgba(217,70,239,0.42),inset_0_0_24px_rgba(255,46,147,0.14)] px-3.5 pt-3 pb-3.5 sm:px-4 sm:pt-3.5 sm:pb-4 flex flex-col justify-between animate-fade-in z-20 shrink-0"
+          >
+            {/* Inner subtle beveled crystal frame */}
+            <div className="absolute inset-[5px] rounded-[22px] border border-purple-300/15 pointer-events-none" />
+
+            {/* Top & Bottom Ornate Diamond Crests */}
+            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-30">
+              <CardDiamondCrest />
+            </div>
+            <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-30">
+              <CardDiamondCrest />
             </div>
 
-            {/* Avatar Emblem & One-Tap Selector directly on card */}
-            <div className="flex flex-col items-center relative z-10">
-              {/* Glowing Avatar Emblem Portal matching card bg #1a052b */}
-              <div className="relative w-16 h-16 rounded-2xl bg-[#1a052b] border-2 border-pink-500/80 p-0.5 shadow-[0_0_20px_rgba(255,46,147,0.6)] mb-2 flex items-center justify-center">
-                <div className="w-full h-full rounded-[13px] bg-[#1a052b] flex items-center justify-center text-3xl">
-                  <span>{selectedAvatar}</span>
+            {/* Subtle Orbital Crescents & Radial Glow behind Avatar */}
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 w-56 h-24 pointer-events-none overflow-hidden opacity-60">
+              <div className="mx-auto w-36 h-20 rounded-full bg-gradient-to-b from-[#FF2E93]/35 to-transparent blur-xl" />
+              <svg viewBox="0 0 220 90" className="absolute inset-0 w-full h-full" fill="none">
+                <path
+                  d="M52 12C22 25 18 68 58 80"
+                  stroke="url(#arcL)"
+                  strokeWidth="1.2"
+                  strokeOpacity="0.45"
+                />
+                <path
+                  d="M168 12C198 25 202 68 162 80"
+                  stroke="url(#arcR)"
+                  strokeWidth="1.2"
+                  strokeOpacity="0.45"
+                />
+                <defs>
+                  <linearGradient id="arcL" x1="20" y1="12" x2="58" y2="80" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FF2E93" stopOpacity="0" />
+                    <stop offset="0.5" stopColor="#F472B6" />
+                    <stop offset="1" stopColor="#8B5CF6" stopOpacity="0" />
+                  </linearGradient>
+                  <linearGradient id="arcR" x1="200" y1="12" x2="162" y2="80" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#FF2E93" stopOpacity="0" />
+                    <stop offset="0.5" stopColor="#F472B6" />
+                    <stop offset="1" stopColor="#8B5CF6" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+
+            {/* Circular Avatar Portal with Pencil Edit Button */}
+            <div className="relative flex justify-center mt-0.5 mb-2 z-20">
+              <button
+                type="button"
+                onClick={() => setIsAvatarPickerOpen(true)}
+                className="relative group focus:outline-none"
+                aria-label="Choose avatar"
+              >
+                <div className="w-[68px] h-[68px] sm:w-[82px] sm:h-[82px] rounded-full p-[2.5px] bg-gradient-to-tr from-[#FF2E93] via-[#E879F9] to-[#8B5CF6] shadow-[0_0_24px_rgba(255,46,147,0.75)] group-hover:scale-105 transition-transform">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-[#130322]">
+                    <img
+                      src={resolveAvatarUrl(selectedAvatar)}
+                      alt="Selected Avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-[#3A105C] border border-[#FF2E93]/90 flex items-center justify-center shadow-[0_0_10px_rgba(255,46,147,0.7)] group-hover:bg-[#FF2E93] transition-colors">
+                  <Pencil className="w-3 h-3 text-white" />
+                </span>
+              </button>
+            </div>
+
+            {/* Form Fields Stack */}
+            <div className="space-y-1.5 sm:space-y-2 relative z-20">
+              {/* Row 1: Nickname + Gender */}
+              <div className="grid grid-cols-[1.45fr_1fr] gap-1.5 sm:gap-2">
+                {/* Nickname */}
+                <label className="flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors cursor-text">
+                  <User className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5">Nickname</span>
+                    <input
+                      type="text"
+                      required
+                      maxLength={30}
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="John Don"
+                      className="w-full bg-transparent text-xs font-bold text-white placeholder-purple-300/35 focus:outline-none leading-tight"
+                    />
+                  </div>
+                </label>
+
+                {/* Gender */}
+                <div className="relative flex items-center gap-1.5 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors">
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="w-3.5 h-3.5 text-pink-300/90 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="10" cy="14" r="5" />
+                    <path d="M13.5 10.5L19 5" />
+                    <path d="M15 5h4v4" />
+                  </svg>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    aria-label="Gender"
+                    className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-purple-100 focus:outline-none appearance-none pr-3 cursor-pointer"
+                  >
+                    {GENDERS.map((g) => (
+                      <option key={g.value} value={g.value} className="bg-[#1a052b] text-white">
+                        {g.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3 h-3 text-purple-300/70 pointer-events-none shrink-0" />
                 </div>
               </div>
 
-              {/* 6 Avatar Selection Chips */}
-              <div className="flex items-center justify-center gap-1.5 w-full">
-                {AVATARS.map((av) => (
-                  <button
-                    type="button"
-                    key={av.id}
-                    onClick={() => setSelectedAvatar(av.emoji)}
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm transition-all duration-150 ${
-                      selectedAvatar === av.emoji
-                        ? 'bg-gradient-to-tr from-[#FF2E93] to-[#D946EF] border-2 border-white scale-110 shadow-[0_0_12px_rgba(255,46,147,0.8)]'
-                        : 'bg-white/[0.06] border border-white/10 hover:bg-white/15'
-                    }`}
-                  >
-                    <span>{av.emoji}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Form Fields Directly on the Card Body */}
-            <form onSubmit={handleSaveProfile} className="space-y-2.5 relative z-10">
-              {/* Display Name Input */}
-              <div>
-                <label className="text-[9.5px] font-bold text-purple-200 block mb-1 tracking-wide uppercase">
-                  Display Name
-                </label>
-                <div className="relative">
-                  <User className="w-3.5 h-3.5 absolute left-3 top-2.5 text-pink-400" />
+              {/* Row 2: Username */}
+              <label className="flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors cursor-text">
+                <AtSign className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5">Username</span>
                   <input
                     type="text"
                     required
                     maxLength={25}
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Enter player name"
-                    className="w-full h-8 pl-8 pr-3 rounded-xl bg-[#130322]/80 border border-pink-500/35 text-white placeholder-purple-300/40 text-xs font-semibold focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-inner"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.replace(/^@+/, '').toLowerCase())}
+                    placeholder="johndon1247"
+                    className="w-full bg-transparent text-xs font-bold text-white placeholder-purple-300/35 focus:outline-none leading-tight"
                   />
                 </div>
-              </div>
+                <div className="shrink-0 flex items-center">
+                  {usernameStatus === 'checking' && (
+                    <div className="w-3.5 h-3.5 border-2 border-purple-400/30 border-t-pink-400 rounded-full animate-spin" />
+                  )}
+                  {usernameStatus === 'valid' && (
+                    <Check className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.7)]" />
+                  )}
+                  {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                    <span
+                      title={usernameStatus === 'taken' ? 'Username already taken' : 'Use 3–25 letters, numbers, or _'}
+                      className="flex items-center gap-1 text-[9px] font-bold text-rose-400"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>{usernameStatus === 'taken' ? 'Taken' : '3+ chars'}</span>
+                    </span>
+                  )}
+                </div>
+              </label>
 
-              {/* Handle Input */}
-              <div>
-                <label className="text-[9.5px] font-bold text-purple-200 block mb-1 tracking-wide uppercase">
-                  Player Tag
-                </label>
-                <div className="relative">
-                  <AtSign className="w-3.5 h-3.5 absolute left-3 top-2.5 text-pink-400" />
-                  <input
-                    type="text"
-                    required
-                    maxLength={20}
-                    value={handle}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setHandle(val.startsWith('@') ? val : `@${val}`);
-                    }}
-                    placeholder="@tag"
-                    className="w-full h-8 pl-8 pr-3 rounded-xl bg-[#130322]/80 border border-pink-500/35 text-white placeholder-purple-300/40 text-xs font-semibold focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 shadow-inner"
+              {/* Row 3: Bio */}
+              <label className="relative flex items-start gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors cursor-text">
+                <Quote className="w-3.5 h-3.5 text-pink-300/90 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5">Bio</span>
+                  <textarea
+                    rows={2}
+                    maxLength={120}
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="Here for deep conversations and interesting people."
+                    className="w-full bg-transparent text-[11px] font-semibold text-purple-50 placeholder-purple-300/35 focus:outline-none resize-none leading-snug pr-11"
                   />
                 </div>
-              </div>
+                <span className="absolute bottom-1.5 right-2.5 text-[9px] font-semibold text-purple-300/60 pointer-events-none">
+                  {bio.length} / 120
+                </span>
+              </label>
 
-              {/* Conversation Mood Selector */}
-              <div>
-                <label className="text-[9.5px] font-bold text-purple-200 block mb-1 tracking-wide uppercase">
-                  Conversation Vibe
-                </label>
-                <div className="relative">
-                  <MessageCircle className="w-3.5 h-3.5 absolute left-3 top-2 text-pink-400 pointer-events-none" />
+              {/* Row 4: Language */}
+              <div className="relative flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors">
+                <Globe className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5">Language</span>
                   <select
-                    value={selectedMood}
-                    onChange={(e) => setSelectedMood(e.target.value)}
-                    className="w-full h-8 pl-8 pr-3 rounded-xl bg-[#1a052b] border border-pink-500/35 text-purple-100 text-[11px] font-semibold focus:outline-none focus:border-pink-500 shadow-inner"
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    aria-label="Language"
+                    className="w-full bg-transparent text-xs font-bold text-white focus:outline-none appearance-none pr-5 cursor-pointer leading-tight"
                   >
-                    {MOODS.map((m) => (
-                      <option key={m} value={m} className="bg-[#1a052b] text-white">
-                        {m}
+                    {LANGUAGES.map((lang) => (
+                      <option key={lang} value={lang} className="bg-[#1a052b] text-white">
+                        {lang}
                       </option>
                     ))}
                   </select>
                 </div>
+                <ChevronDown className="w-3.5 h-3.5 text-purple-300/70 pointer-events-none shrink-0" />
               </div>
 
-              {/* Action Button Stamped on the Card */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full h-10 rounded-full bg-gradient-to-r from-[#FF2E93] via-[#D946EF] to-[#8B5CF6] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(255,46,147,0.7)] hover:shadow-[0_0_35px_rgba(255,46,147,0.9)] active:scale-[0.98] transition-all duration-200 mt-2 disabled:opacity-50"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>Save Identity & Enter</span>
-              </button>
-            </form>
-          </div>
+              {/* Row 5: Interests (up to 6) */}
+              <div className="pt-0.5">
+                <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
+                  <Tag className="w-3 h-3 text-pink-300/90" />
+                  <span className="text-[11px] font-bold text-white">Interests</span>
+                  <span className="text-[9.5px] text-purple-300/70">(up to 6)</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {INTEREST_OPTIONS.map((tag) => {
+                    const active = interests.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleInterest(tag)}
+                        className={`h-7 rounded-full text-[10.5px] font-bold px-2 flex items-center justify-center gap-1 transition-all duration-150 ${
+                          active
+                            ? 'bg-gradient-to-r from-[#FF2E93] to-[#C026D3] border border-pink-200/80 text-white shadow-[0_0_12px_rgba(255,46,147,0.55)]'
+                            : 'bg-[#130322]/65 border border-purple-400/25 text-purple-200/85 hover:border-pink-400/50'
+                        }`}
+                      >
+                        {active && <Check className="w-2.5 h-2.5 shrink-0 stroke-[3]" />}
+                        <span className="truncate">{tag}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </form>
         )}
       </div>
 
       {/* ======================================================== */}
-      {/* BOTTOM CONTEXT CALLOUTS & ACTIONS                        */}
+      {/* BOTTOM ACTION BUTTON                                     */}
       {/* ======================================================== */}
-      <div className="w-full max-w-sm flex flex-col items-center z-10 shrink-0 pb-1">
+      <div className="w-full max-w-[360px] flex flex-col items-center z-20 shrink-0 pb-0.5 pt-1">
         {stage === 'box_closed' && (
           <button
             type="button"
@@ -299,14 +573,88 @@ export const ProfileSetupView: React.FC = () => {
 
         {stage === 'card_flipped' && (
           <button
-            type="button"
-            onClick={handleSkip}
-            className="text-[10px] text-purple-300/70 hover:text-white underline transition-colors mt-0.5"
+            type="submit"
+            form="profile-identity-form"
+            disabled={isSubmitting}
+            className="w-full h-10 sm:h-11 rounded-full bg-gradient-to-r from-[#FF2E93] via-[#EC4899] to-[#8B5CF6] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_28px_rgba(255,46,147,0.7)] hover:shadow-[0_0_38px_rgba(255,46,147,0.95)] active:scale-[0.98] transition-all duration-200 border border-white/25 disabled:opacity-50"
           >
-            Skip for now & enter dashboard
+            {isSubmitting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Saving Changes...</span>
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4 stroke-[2.8]" />
+                <span>Save Changes</span>
+              </>
+            )}
           </button>
         )}
       </div>
+
+      {/* ======================================================== */}
+      {/* AVATAR PICKER MODAL (Avatars from public/avatars/)       */}
+      {/* ======================================================== */}
+      {isAvatarPickerOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-[#07000E]/85 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsAvatarPickerOpen(false)}
+        >
+          <div
+            className="w-full max-w-[360px] max-h-[82dvh] rounded-[28px] bg-[#1a052b] border border-[#FF2E93]/70 shadow-[0_0_45px_rgba(217,70,239,0.5)] p-4 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-pink-500/20 shrink-0">
+              <div>
+                <h2 className="text-sm font-black text-white">Choose Your Avatar</h2>
+                <p className="text-[10px] text-purple-300/75">Pick a character that matches your vibe</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAvatarPickerOpen(false)}
+                className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-purple-200 hover:bg-white/15"
+                aria-label="Close avatar picker"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2.5 py-3 overflow-y-auto no-scrollbar">
+              {AVATAR_OPTIONS.map((av) => {
+                const isSelected = selectedAvatar === av.path;
+                return (
+                  <button
+                    key={av.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedAvatar(av.path);
+                      setIsAvatarPickerOpen(false);
+                    }}
+                    className={`flex flex-col items-center gap-1 p-1 rounded-2xl transition-all ${
+                      isSelected
+                        ? 'bg-pink-500/25 ring-2 ring-[#FF2E93] shadow-[0_0_16px_rgba(255,46,147,0.65)] scale-[1.03]'
+                        : 'bg-white/[0.04] border border-purple-400/20 hover:border-pink-400/60'
+                    }`}
+                  >
+                    <div className="w-full aspect-square rounded-xl overflow-hidden bg-[#130322]">
+                      <img
+                        src={resolveAvatarUrl(av.path)}
+                        alt={av.label}
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <span className="text-[9.5px] font-bold text-purple-100/90 truncate max-w-full">
+                      {av.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

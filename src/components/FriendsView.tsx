@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { api } from '../services/api';
+import { resolveAvatarUrl } from '../utils/avatars';
 import { Search, MessageSquare, Gamepad2, UserPlus, ArrowLeft, LogOut, ShieldAlert } from 'lucide-react';
 
 interface FriendProfile {
@@ -267,9 +268,9 @@ export const FriendsView: React.FC = () => {
           <div className="px-6 pb-6 -mt-12 flex flex-col items-center text-center">
             <div className="relative mb-2">
               <img 
-                src={currentUser?.avatar || "https://api.dicebear.com/7.x/bottts/svg?seed=alex"} 
+                src={resolveAvatarUrl(currentUser?.avatar)} 
                 alt={currentUser?.name || "Player"} 
-                className="w-24 h-24 rounded-full bg-[#290742] border-4 border-[#1A052B] shadow-2xl"
+                className="w-24 h-24 rounded-full object-cover bg-[#290742] border-4 border-[#1A052B] shadow-2xl"
               />
               <span className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-[#1A052B] rounded-full" />
             </div>
@@ -311,13 +312,21 @@ export const FriendsView: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-3 w-full max-w-lg mt-4">
+            <div className={`grid ${isGuest ? 'grid-cols-2' : 'grid-cols-3'} gap-2.5 w-full max-w-lg mt-4`}>
               <button 
                 onClick={() => showToast("Profile link copied!")}
                 className="py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-primary to-accent text-white font-bold text-xs sm:text-sm shadow-md hover:opacity-95"
               >
                 Share Profile
               </button>
+              {!isGuest && (
+                <button 
+                  onClick={() => setScreen('profile-setup')}
+                  className="py-2.5 sm:py-3 rounded-full bg-white/10 border border-accent/40 text-pink-200 hover:bg-white/15 font-bold text-xs sm:text-sm transition-all"
+                >
+                  Edit Card
+                </button>
+              )}
               <button 
                 onClick={logout}
                 className="py-2.5 sm:py-3 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all"
@@ -331,8 +340,20 @@ export const FriendsView: React.FC = () => {
             <div className="w-full max-w-lg mt-4 p-4 rounded-2xl bg-[#2D0D4B] border border-accent/20 text-left">
               <span className="text-xs font-bold text-accent-light">About</span>
               <p className="text-xs sm:text-sm text-white/90 mt-1 italic leading-relaxed">
-                "Here to play deep card games and meet thoughtful strangers! 🎴"
+                "{currentUser?.bio || 'Here to play deep card games and meet thoughtful strangers! 🎴'}"
               </p>
+              {currentUser?.interests && currentUser.interests.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                  {currentUser.interests.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-2.5 py-0.5 rounded-full bg-accent/25 border border-accent/40 text-[10px] font-bold text-pink-200"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

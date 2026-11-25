@@ -11,6 +11,10 @@ export interface ApiUser {
   email?: string;
   handle: string;
   avatar: string;
+  gender?: string;
+  bio?: string;
+  language?: string;
+  interests?: string[];
   isGuest: boolean;
 }
 
@@ -247,8 +251,19 @@ class ApiService {
     }
   }
 
-  // --- Profile: Update Name, Handle, Avatar ---
-  async updateProfile(profile: { name?: string; handle?: string; avatar?: string }, token: string) {
+  // --- Profile: Update Nickname, Username, Avatar, Gender, Bio, Language, Interests ---
+  async updateProfile(
+    profile: {
+      name?: string;
+      handle?: string;
+      avatar?: string;
+      gender?: string;
+      bio?: string;
+      language?: string;
+      interests?: string[];
+    },
+    token: string
+  ) {
     try {
       const res = await fetch(`${API_BASE_URL}/api/profile`, {
         method: 'POST',
@@ -258,6 +273,19 @@ class ApiService {
       return await res.json();
     } catch (err: any) {
       return { success: false, error: err.message };
+    }
+  }
+
+  async checkUsername(username: string, token?: string | null): Promise<{ available: boolean; valid: boolean }> {
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/profile/check-username?username=${encodeURIComponent(username)}`,
+        { headers: this.getHeaders(token) }
+      );
+      return await res.json();
+    } catch {
+      const clean = username.trim().replace(/^@+/, '');
+      return { valid: /^[a-zA-Z0-9_]{3,25}$/.test(clean), available: true };
     }
   }
 }

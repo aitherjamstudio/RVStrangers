@@ -41,7 +41,15 @@ interface GameStore {
   isAuthenticated: boolean;
   isGuest: boolean;
   applyAuthSession: (res: AuthResponse) => void;
-  updateUserProfile: (data: { name: string; handle: string; avatar: string }) => Promise<void>;
+  updateUserProfile: (data: {
+    name: string;
+    handle: string;
+    avatar: string;
+    gender?: string;
+    bio?: string;
+    language?: string;
+    interests?: string[];
+  }) => Promise<boolean>;
   initSessionFromD1: () => Promise<void>;
   loginWithGoogle: (credential?: string, email?: string, name?: string) => Promise<void>;
   loginWithCredentials: (email: string, pass: string) => Promise<boolean>;
@@ -122,6 +130,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
           email: me.user.email,
           handle: me.user.handle,
           avatar: me.user.avatar,
+          gender: me.user.gender,
+          bio: me.user.bio,
+          language: me.user.language,
+          interests: Array.isArray(me.user.interests) ? me.user.interests : [],
           isGuest: Boolean(me.user.isGuest),
           createdAt: new Date().toISOString(),
         },
@@ -206,6 +218,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
           email: res.user.email,
           handle: res.user.handle,
           avatar: res.user.avatar,
+          gender: res.user.gender,
+          bio: res.user.bio,
+          language: res.user.language,
+          interests: Array.isArray(res.user.interests) ? res.user.interests : [],
           isGuest: false,
           createdAt: new Date().toISOString(),
         },
@@ -228,18 +244,47 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  updateUserProfile: async (data: { name: string; handle: string; avatar: string }) => {
+  updateUserProfile: async (data) => {
     const current = get().currentUser;
-    if (!current) return;
+    if (!current) return false;
+    const cleanHandle = data.handle.trim().replace(/^@+/, '').toLowerCase();
     const updatedUser: AuthUser = {
       ...current,
       name: data.name.trim() || current.name,
-      handle: data.handle.trim() || current.handle,
+      handle: cleanHandle || current.handle,
       avatar: data.avatar || current.avatar,
+      gender: data.gender ?? current.gender,
+      bio: data.bio !== undefined ? data.bio : current.bio,
+      language: data.language ?? current.language,
+      interests: data.interests ?? current.interests,
     };
     const token = get().token;
     if (token) {
-      api.updateProfile({ name: updatedUser.name, handle: updatedUser.handle, avatar: updatedUser.avatar }, token).catch(() => {});
+      const res = await api.updateProfile(
+        {
+          name: updatedUser.name,
+          handle: updatedUser.handle,
+          avatar: updatedUser.avatar,
+          gender: updatedUser.gender,
+          bio: updatedUser.bio,
+          language: updatedUser.language,
+          interests: updatedUser.interests,
+        },
+        token
+      );
+      if (res && res.success === false) {
+        get().showToast(res.error || 'Could not update profile.');
+        return false;
+      }
+      if (res?.user) {
+        updatedUser.name = res.user.name ?? updatedUser.name;
+        updatedUser.handle = res.user.handle ?? updatedUser.handle;
+        updatedUser.avatar = res.user.avatar ?? updatedUser.avatar;
+        updatedUser.gender = res.user.gender ?? updatedUser.gender;
+        updatedUser.bio = res.user.bio ?? updatedUser.bio;
+        updatedUser.language = res.user.language ?? updatedUser.language;
+        updatedUser.interests = Array.isArray(res.user.interests) ? res.user.interests : updatedUser.interests;
+      }
     }
     const session: AuthSession = {
       token: token || undefined,
@@ -253,6 +298,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       currentScreen: 'dashboard',
     });
     get().showToast(`Profile ready! Welcome to RVStrangers, ${updatedUser.name} ✨`);
+    return true;
   },
 
   loginWithGoogle: async (credential) => {

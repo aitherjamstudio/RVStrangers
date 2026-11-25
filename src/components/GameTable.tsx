@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
+import { resolveAvatarUrl } from '../utils/avatars';
 import { Clock, X, Sparkles, Send, ArrowRight } from 'lucide-react';
 
 export const GameTable: React.FC = () => {
@@ -77,9 +78,9 @@ export const GameTable: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-primary/40 border border-accent/40">
             <img 
-              src={currentUser?.avatar}
+              src={resolveAvatarUrl(currentUser?.avatar)}
               alt={currentUser?.name || 'Player'}
-              className="w-6 h-6 rounded-full"
+              className="w-6 h-6 rounded-full object-cover"
             />
             <span className="text-xs sm:text-sm font-bold">You{currentUser ? ` (${currentUser.name})` : ''}</span>
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
