@@ -217,8 +217,21 @@ export const ProfileSetupView: React.FC = () => {
     setScreen('dashboard');
   };
 
+  // Dismiss native Android keyboard when tapping outside inputs/controls
+  const handleDismissKeyboard = (e: React.PointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement | null;
+    if (!target || target.closest('input, textarea, select, button, label')) return;
+    const active = document.activeElement as HTMLElement | null;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+      active.blur();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] max-h-[100dvh] bg-[#07000E] text-white flex flex-col items-center justify-between overflow-hidden select-none px-3.5 py-2.5 sm:py-4 font-comfortaa">
+    <div
+      onPointerDown={handleDismissKeyboard}
+      className="fixed inset-0 w-full h-[100dvh] max-h-[100dvh] bg-[#07000E] text-white flex flex-col items-center justify-between overflow-hidden select-none px-3.5 py-2.5 sm:py-4 font-comfortaa"
+    >
       {/* Ambient Cyberpunk Radial Glows */}
       <div className="fixed -top-28 -left-24 w-80 h-80 rounded-full bg-gradient-to-br from-[#FF2E93]/25 via-[#D946EF]/10 to-transparent blur-[95px] pointer-events-none" />
       <div className="fixed -bottom-28 -right-24 w-80 h-80 rounded-full bg-gradient-to-tl from-[#D946EF]/25 via-[#8B5CF6]/15 to-transparent blur-[95px] pointer-events-none" />
@@ -406,10 +419,17 @@ export const ProfileSetupView: React.FC = () => {
                       type="text"
                       required
                       maxLength={30}
+                      enterKeyHint="done"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          e.currentTarget.blur();
+                        }
+                      }}
                       placeholder="John Don"
-                      className="w-full bg-transparent text-xs font-bold text-white placeholder-purple-300/35 focus:outline-none leading-tight"
+                      className="w-full bg-transparent text-xs font-bold text-white placeholder-purple-300/35 focus:outline-none leading-tight select-text"
                     />
                   </div>
                 </label>
@@ -454,10 +474,17 @@ export const ProfileSetupView: React.FC = () => {
                     type="text"
                     required
                     maxLength={25}
+                    enterKeyHint="done"
                     value={username}
                     onChange={(e) => setUsername(e.target.value.replace(/^@+/, '').toLowerCase())}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.currentTarget.blur();
+                      }
+                    }}
                     placeholder="johndon1247"
-                    className="w-full bg-transparent text-xs font-bold text-white placeholder-purple-300/35 focus:outline-none leading-tight"
+                    className="w-full bg-transparent text-xs font-bold text-white placeholder-purple-300/35 focus:outline-none leading-tight select-text"
                   />
                 </div>
                 <div className="shrink-0 flex items-center">
@@ -487,10 +514,17 @@ export const ProfileSetupView: React.FC = () => {
                   <textarea
                     rows={2}
                     maxLength={120}
+                    enterKeyHint="done"
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        e.currentTarget.blur();
+                      }
+                    }}
                     placeholder="Here for deep conversations and interesting people."
-                    className="w-full bg-transparent text-[11px] font-semibold text-purple-50 placeholder-purple-300/40 focus:outline-none resize-none leading-snug pr-11 select-text"
+                    className="w-full bg-transparent text-[11px] font-semibold text-purple-50 placeholder-purple-300/40 focus:outline-none resize-none overflow-y-auto leading-snug pr-11 select-text"
                   />
                 </div>
                 <span className="absolute bottom-1.5 right-2.5 text-[9px] font-semibold text-purple-300/60 pointer-events-none">
@@ -755,10 +789,17 @@ export const ProfileSetupView: React.FC = () => {
               <input
                 type="text"
                 autoFocus
+                enterKeyHint="search"
                 value={countrySearch}
                 onChange={(e) => setCountrySearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                  }
+                }}
                 placeholder="Search country..."
-                className="w-full h-9 pl-8 pr-3 rounded-xl bg-[#130322] border border-pink-400/30 text-xs font-semibold text-white placeholder-purple-300/40 focus:outline-none focus:border-[#FF2E93]"
+                className="w-full h-9 pl-8 pr-3 rounded-xl bg-[#130322] border border-pink-400/30 text-xs font-semibold text-white placeholder-purple-300/40 focus:outline-none focus:border-[#FF2E93] select-text"
               />
             </div>
 
@@ -829,10 +870,17 @@ export const ProfileSetupView: React.FC = () => {
               <Search className="w-3.5 h-3.5 text-pink-300/80 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
+                enterKeyHint="search"
                 value={languageSearch}
                 onChange={(e) => setLanguageSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                  }
+                }}
                 placeholder="Filter languages..."
-                className="w-full h-9 pl-8 pr-3 rounded-xl bg-[#130322] border border-pink-400/30 text-xs font-semibold text-white placeholder-purple-300/40 focus:outline-none focus:border-[#FF2E93]"
+                className="w-full h-9 pl-8 pr-3 rounded-xl bg-[#130322] border border-pink-400/30 text-xs font-semibold text-white placeholder-purple-300/40 focus:outline-none focus:border-[#FF2E93] select-text"
               />
             </div>
 
