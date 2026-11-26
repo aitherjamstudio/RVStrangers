@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { ProfileCard3D, SetupStage } from './ProfileCard3D';
-import { AVATAR_OPTIONS, DEFAULT_AVATAR_PATH, resolveAvatarUrl } from '../utils/avatars';
+import { AVATAR_OPTIONS, AvatarCategory, DEFAULT_AVATAR_PATH, resolveAvatarUrl } from '../utils/avatars';
 import { COUNTRIES, MATCHMAKING_LANGUAGES } from '../utils/profileCatalogs';
 import { api } from '../services/api';
 import {
@@ -95,6 +95,7 @@ export const ProfileSetupView: React.FC = () => {
       : DEFAULT_AVATAR_PATH;
   const [selectedAvatar, setSelectedAvatar] = useState<string>(initialAvatar);
   const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false);
+  const [avatarCategory, setAvatarCategory] = useState<AvatarCategory>('male');
   const [isCountryPickerOpen, setIsCountryPickerOpen] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
   const [isLanguagePickerOpen, setIsLanguagePickerOpen] = useState(false);
@@ -667,8 +668,29 @@ export const ProfileSetupView: React.FC = () => {
               </button>
             </div>
 
+            {/* Category Selector Tabs (Male default, Female, Neutral) */}
+            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-[#130322] border border-pink-500/20 mt-2.5 shrink-0">
+              {(['male', 'female', 'neutral'] as AvatarCategory[]).map((cat) => {
+                const active = avatarCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setAvatarCategory(cat)}
+                    className={`py-1.5 rounded-xl text-[11px] font-extrabold capitalize transition-all ${
+                      active
+                        ? 'bg-gradient-to-r from-[#FF2E93] to-[#C026D3] text-white shadow-[0_0_12px_rgba(255,46,147,0.5)]'
+                        : 'text-purple-200/75 hover:text-white hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="grid grid-cols-4 gap-2.5 py-3 overflow-y-auto no-scrollbar">
-              {AVATAR_OPTIONS.map((av) => {
+              {AVATAR_OPTIONS.filter((av) => av.category === avatarCategory).map((av) => {
                 const isSelected = selectedAvatar === av.path;
                 return (
                   <button
