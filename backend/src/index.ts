@@ -1095,9 +1095,8 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
         pivotGroup.rotation.y = 0.32;
 
         const gltfLoader = new GLTFLoader();
-        const textureLoader = new THREE.TextureLoader();
 
-        gltfLoader.load('/api/assets/models/default_box.glb', (gltf) => {
+        gltfLoader.load('/3D/models/box_with_texture.glb', (gltf) => {
           const model = gltf.scene;
           const box = new THREE.Box3().setFromObject(model);
           const center = box.getCenter(new THREE.Vector3());
@@ -1111,26 +1110,21 @@ function renderHostedLoginHtml(googleAuthUrl: string): string {
           camera.position.z = Math.max(cameraDistance, 0.23);
           camera.lookAt(0, 0, 0);
 
-          textureLoader.load('/api/assets/textures/default_box_texture.webp', (tex) => {
-            tex.colorSpace = THREE.SRGBColorSpace;
-            tex.flipY = false;
-            tex.wrapS = THREE.ClampToEdgeWrapping;
-            tex.wrapT = THREE.ClampToEdgeWrapping;
-            const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.22, metalness: 0.05 });
-            model.traverse((child) => {
-              if (child.isMesh) child.material = mat;
-            });
-            const fallback = document.getElementById('deckFallbackImg');
-            if (fallback) {
-              fallback.style.opacity = '0';
-              setTimeout(() => fallback.remove(), 500);
+          model.traverse((child) => {
+            if (child.isMesh && child.material) {
+              child.material.roughness = 0.25;
+              child.material.metalness = 0.05;
             }
-            renderer.render(scene, camera);
-            // Model and texture fully ready: reveal page!
-            hidePageLoader();
-          }, undefined, () => {
-            hidePageLoader();
           });
+
+          const fallback = document.getElementById('deckFallbackImg');
+          if (fallback) {
+            fallback.style.opacity = '0';
+            setTimeout(() => fallback.remove(), 500);
+          }
+          renderer.render(scene, camera);
+          // Model with embedded texture fully ready: reveal page!
+          hidePageLoader();
         }, undefined, () => {
           hidePageLoader();
         });

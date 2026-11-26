@@ -408,8 +408,7 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
     const rawBase = import.meta.env.BASE_URL || './';
     const baseUrl = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
 
-    const boxModelUrl = `${baseUrl}3D/models/default_box.glb`;
-    const boxTextureUrl = `${baseUrl}3D/textures/default_box_texture.webp`;
+    const boxModelUrl = `${baseUrl}3D/models/box_with_texture.glb`;
     const cardModelUrl = `${baseUrl}3D/models/card.glb`;
     const cardTextureUrl = `${baseUrl}3D/textures/Profile_Card.webp`;
 
@@ -484,44 +483,33 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
       }
     };
 
-    // Load Box Model & Texture
+    // Load Box Model (with embedded texture from box_with_texture.glb)
     gltfLoader.load(boxModelUrl, (gltf) => {
       const model = gltf.scene;
-      let foundLid: THREE.Object3D | null = null;
-      let foundBody: THREE.Object3D | null = null;
-
       model.traverse((child) => {
-        if (child.name === 'Lid') foundLid = child;
-        if (child.name === 'RV_Box_Body') foundBody = child;
+        if ((child as THREE.Mesh).isMesh) {
+          const mat = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
+          if (mat && mat.isMeshStandardMaterial) {
+            mat.roughness = 0.25;
+            mat.metalness = 0.05;
+          }
+        }
       });
 
-      textureLoader.load(boxTextureUrl, (boxTex) => {
-        boxTex.colorSpace = THREE.SRGBColorSpace;
-        boxTex.flipY = false;
-        const boxMat = new THREE.MeshStandardMaterial({
-          map: boxTex,
-          roughness: 0.22,
-          metalness: 0.06,
-        });
+      const foundBody = model.getObjectByName('RV_Box_Body');
+      const foundLid = model.getObjectByName('Lid');
 
-        if (foundBody) {
-          foundBody.traverse((c) => {
-            if ((c as THREE.Mesh).isMesh) (c as THREE.Mesh).material = boxMat;
-          });
-          boxGroup.add(foundBody);
-        }
+      if (foundBody) {
+        boxGroup.add(foundBody);
+      }
 
-        if (foundLid) {
-          foundLid.traverse((c) => {
-            if ((c as THREE.Mesh).isMesh) (c as THREE.Mesh).material = boxMat;
-          });
-          // Position relative to lid hinge origin (0, 0.0707, -0.0166)
-          foundLid.position.set(0, -0.0707, 0.0166);
-          lidHingeGroup.add(foundLid);
-        }
+      if (foundLid) {
+        // Position relative to lid hinge origin (0, 0.0707, -0.0166)
+        foundLid.position.set(0, -0.0707, 0.0166);
+        lidHingeGroup.add(foundLid);
+      }
 
-        notifyLoaded();
-      });
+      notifyLoaded();
     });
 
     // Load Card Model & Texture

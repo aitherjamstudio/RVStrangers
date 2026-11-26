@@ -29,13 +29,11 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
     const rawBase = import.meta.env.BASE_URL || './';
     const baseUrl = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
     
-    // Default model and texture URLs from local public/3D for instant offline/fast loading
-    const defaultModelPath = `${baseUrl}3D/models/default_box.glb`;
-    const defaultLocalTextureWebp = `${baseUrl}3D/textures/default_box_texture.webp`;
+    // Default model URL from local public/3D (texture embedded inside box_with_texture.glb)
+    const defaultModelPath = `${baseUrl}3D/models/box_with_texture.glb`;
     const defaultLocalTexturePng = `${baseUrl}3D/textures/default_box_texture.png`;
-    
+
     const resolvedModelUrl = modelUrl || defaultModelPath;
-    const resolvedTextureUrl = textureUrl || defaultLocalTextureWebp;
 
     // Dimensions
     let width = container.clientWidth || 180;
@@ -194,8 +192,23 @@ export const DeckBox3D: React.FC<DeckBox3DProps> = ({
         camera.position.z = Math.max(cameraDistance, 0.23);
         camera.lookAt(0, 0, 0);
 
-        // Load and apply texture directly from local public/3D
-        loadTextureWithFallback(resolvedTextureUrl, defaultLocalTexturePng);
+        // Use embedded texture inside box_with_texture.glb unless a custom textureUrl override is passed
+        if (textureUrl) {
+          loadTextureWithFallback(textureUrl, defaultLocalTexturePng);
+        } else {
+          modelScene.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              const mesh = child as THREE.Mesh;
+              mesh.castShadow = true;
+              mesh.receiveShadow = true;
+              const mat = mesh.material as THREE.MeshStandardMaterial;
+              if (mat && mat.isMeshStandardMaterial) {
+                mat.roughness = 0.25;
+                mat.metalness = 0.05;
+              }
+            }
+          });
+        }
 
         setIsLoading(false);
       },
