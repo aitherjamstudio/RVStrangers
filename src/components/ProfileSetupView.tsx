@@ -219,8 +219,8 @@ export const ProfileSetupView: React.FC = () => {
 
   return (
     <div
-      className={`w-full min-h-[100dvh] bg-[#07000E] text-white flex flex-col items-center overflow-y-auto overscroll-contain px-3.5 py-2.5 sm:py-4 font-comfortaa ${
-        stage === 'card_flipped' ? 'justify-start gap-2.5 pb-6 select-text' : 'justify-between select-none'
+      className={`w-full min-h-[100dvh] bg-[#07000E] text-white flex flex-col items-center justify-between overflow-y-auto overscroll-contain pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:py-5 font-comfortaa ${
+        stage === 'card_flipped' ? 'gap-3 select-text' : 'select-none'
       }`}
     >
       {/* Ambient Cyberpunk Radial Glows */}
@@ -296,7 +296,7 @@ export const ProfileSetupView: React.FC = () => {
       {/* CENTER STAGE: 3D UNBOXING OR ORNATE IDENTITY CARD        */}
       {/* ======================================================== */}
       <div
-        className={`relative w-full max-w-[370px] flex flex-col items-center ${
+        className={`relative w-full max-w-[390px] flex flex-col items-center ${
           stage === 'card_flipped'
             ? 'justify-start py-1'
             : 'flex-1 justify-center my-auto min-h-0'
@@ -330,7 +330,7 @@ export const ProfileSetupView: React.FC = () => {
           <form
             id="profile-identity-form"
             onSubmit={handleSaveProfile}
-            className="w-full max-w-[360px] relative rounded-[28px] bg-[#1a052b] border-[1.5px] border-[#FF2E93]/80 shadow-[0_0_38px_rgba(217,70,239,0.42),inset_0_0_24px_rgba(255,46,147,0.14)] px-3.5 pt-3 pb-3.5 sm:px-4 sm:pt-3.5 sm:pb-4 flex flex-col justify-between animate-fade-in z-20 shrink-0"
+            className="w-full max-w-[380px] relative rounded-[30px] bg-[#1a052b] border-[1.5px] border-[#FF2E93]/80 shadow-[0_0_38px_rgba(217,70,239,0.42),inset_0_0_24px_rgba(255,46,147,0.14)] px-4 pt-4 pb-4 sm:px-5 sm:pt-4 sm:pb-5 flex flex-col justify-between animate-fade-in z-20 shrink-0"
           >
             {/* Inner subtle beveled crystal frame */}
             <div className="absolute inset-[5px] rounded-[22px] border border-purple-300/15 pointer-events-none" />
@@ -375,14 +375,14 @@ export const ProfileSetupView: React.FC = () => {
             </div>
 
             {/* Circular Avatar Portal with Pencil Edit Button */}
-            <div className="relative flex justify-center mt-0.5 mb-2 z-20">
+            <div className="relative flex justify-center mt-1 mb-3 z-20">
               <button
                 type="button"
                 onClick={() => setIsAvatarPickerOpen(true)}
                 className="relative group focus:outline-none"
                 aria-label="Choose avatar"
               >
-                <div className="w-[68px] h-[68px] sm:w-[82px] sm:h-[82px] rounded-full p-[2.5px] bg-gradient-to-tr from-[#FF2E93] via-[#E879F9] to-[#8B5CF6] shadow-[0_0_24px_rgba(255,46,147,0.75)] group-hover:scale-105 transition-transform">
+                <div className="w-[74px] h-[74px] sm:w-[84px] sm:h-[84px] rounded-full p-[2.5px] bg-gradient-to-tr from-[#FF2E93] via-[#E879F9] to-[#8B5CF6] shadow-[0_0_24px_rgba(255,46,147,0.75)] group-hover:scale-105 transition-transform">
                   <div className="w-full h-full rounded-full overflow-hidden bg-[#130322]">
                     <img
                       src={resolveAvatarUrl(selectedAvatar)}
@@ -398,14 +398,14 @@ export const ProfileSetupView: React.FC = () => {
             </div>
 
             {/* Form Fields Stack */}
-            <div className="space-y-1.5 sm:space-y-2 relative z-20">
+            <div className="space-y-2.5 sm:space-y-3 relative z-20">
               {/* Row 1: Nickname + Gender */}
-              <div className="grid grid-cols-[1.45fr_1fr] gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-[1.45fr_1fr] gap-2 sm:gap-2.5">
                 {/* Nickname */}
-                <div className="flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors">
+                <div className="flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-3 py-2 transition-colors">
                   <User className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5">Nickname</span>
+                    <span className="block text-[9.5px] text-purple-300/70 leading-none mb-0.5">Nickname</span>
                     <input
                       type="text"
                       required
@@ -420,13 +420,13 @@ export const ProfileSetupView: React.FC = () => {
                         }
                       }}
                       placeholder="John Don"
-                      className="w-full bg-transparent text-xs font-bold text-white placeholder-purple-300/35 focus:outline-none leading-tight select-text"
+                      className="w-full bg-transparent text-[13px] sm:text-sm font-bold text-white placeholder-purple-300/35 focus:outline-none leading-tight select-text"
                     />
                   </div>
                 </div>
 
                 {/* Gender */}
-                <div className="relative flex items-center gap-1.5 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors">
+                <div className="relative flex items-center gap-1.5 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-3 py-2 transition-colors">
                   <svg
                     viewBox="0 0 24 24"
                     className="w-3.5 h-3.5 text-pink-300/90 shrink-0"
@@ -457,10 +457,10 @@ export const ProfileSetupView: React.FC = () => {
               </div>
 
               {/* Row 2: Username */}
-              <div className="flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors">
+              <div className="flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-3 py-2 transition-colors">
                 <AtSign className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5">Username</span>
+                  <span className="block text-[9.5px] text-purple-300/70 leading-none mb-0.5">Username</span>
                   <input
                     type="text"
                     required
@@ -475,7 +475,7 @@ export const ProfileSetupView: React.FC = () => {
                       }
                     }}
                     placeholder="johndon1247"
-                    className="w-full bg-transparent text-xs font-bold text-white placeholder-purple-300/35 focus:outline-none leading-tight select-text"
+                    className="w-full bg-transparent text-[13px] sm:text-sm font-bold text-white placeholder-purple-300/35 focus:outline-none leading-tight select-text"
                   />
                 </div>
                 <div className="shrink-0 flex items-center">
@@ -498,10 +498,10 @@ export const ProfileSetupView: React.FC = () => {
               </div>
 
               {/* Row 3: Bio */}
-              <div className="relative flex items-start gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors">
+              <div className="relative flex items-start gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-3 py-2 transition-colors">
                 <Quote className="w-3.5 h-3.5 text-pink-300/90 shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5">Bio</span>
+                  <span className="block text-[9.5px] text-purple-300/70 leading-none mb-0.5">Bio</span>
                   <textarea
                     rows={2}
                     maxLength={120}
@@ -509,16 +509,16 @@ export const ProfileSetupView: React.FC = () => {
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     placeholder="Here for deep conversations and interesting people."
-                    className="w-full bg-transparent text-[11px] font-semibold text-purple-50 placeholder-purple-300/40 focus:outline-none resize-none overflow-y-auto leading-snug pr-11 select-text"
+                    className="w-full bg-transparent text-xs sm:text-[13px] font-semibold text-purple-50 placeholder-purple-300/40 focus:outline-none resize-none overflow-y-auto leading-relaxed pr-11 select-text"
                   />
                 </div>
-                <span className="absolute bottom-1.5 right-2.5 text-[9px] font-semibold text-purple-300/60 pointer-events-none">
+                <span className="absolute bottom-2 right-2.5 text-[9px] font-semibold text-purple-300/60 pointer-events-none">
                   {bio.length} / 120
                 </span>
               </div>
 
               {/* Row 4: Country + Matchmaking Languages */}
-              <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
                 {/* Searchable Country Dropdown Trigger */}
                 <button
                   type="button"
@@ -527,11 +527,11 @@ export const ProfileSetupView: React.FC = () => {
                     setIsCountryPickerOpen(true);
                   }}
                   aria-label="Select country"
-                  className="relative flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 hover:border-[#FF2E93] px-2.5 py-1.5 transition-colors text-left"
+                  className="relative flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 hover:border-[#FF2E93] px-3 py-2 transition-colors text-left"
                 >
                   <MapPin className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5">Country</span>
+                    <span className="block text-[9.5px] text-purple-300/70 leading-none mb-0.5">Country</span>
                     <span className={`block text-xs font-bold truncate leading-tight ${country ? 'text-white' : 'text-purple-300/50'}`}>
                       {country || 'Select'}
                     </span>
@@ -547,11 +547,11 @@ export const ProfileSetupView: React.FC = () => {
                     setIsLanguagePickerOpen(true);
                   }}
                   aria-label="Select matchmaking languages"
-                  className="relative flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 hover:border-[#FF2E93] px-2.5 py-1.5 transition-colors text-left"
+                  className="relative flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 hover:border-[#FF2E93] px-3 py-2 transition-colors text-left"
                 >
                   <Globe className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5 truncate">
+                    <span className="block text-[9.5px] text-purple-300/70 leading-none mb-0.5 truncate">
                       Matchmaking Languages
                     </span>
                     <span className="block text-xs font-bold text-white truncate leading-tight">
@@ -565,13 +565,13 @@ export const ProfileSetupView: React.FC = () => {
               </div>
 
               {/* Row 5: Interests (up to 6) */}
-              <div className="pt-0.5">
-                <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
+              <div className="pt-1">
+                <div className="flex items-center gap-1.5 mb-2 px-0.5">
                   <Tag className="w-3 h-3 text-pink-300/90" />
-                  <span className="text-[11px] font-bold text-white">Interests</span>
+                  <span className="text-[11.5px] font-bold text-white">Interests</span>
                   <span className="text-[9.5px] text-purple-300/70">(up to 6)</span>
                 </div>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-3 gap-2">
                   {INTEREST_OPTIONS.map((tag) => {
                     const active = interests.includes(tag);
                     return (
@@ -579,7 +579,7 @@ export const ProfileSetupView: React.FC = () => {
                         key={tag}
                         type="button"
                         onClick={() => toggleInterest(tag)}
-                        className={`h-7 rounded-full text-[10.5px] font-bold px-2 flex items-center justify-center gap-1 transition-all duration-150 ${
+                        className={`h-8 rounded-full text-[11px] font-bold px-2.5 flex items-center justify-center gap-1 transition-all duration-150 ${
                           active
                             ? 'bg-gradient-to-r from-[#FF2E93] to-[#C026D3] border border-pink-200/80 text-white shadow-[0_0_12px_rgba(255,46,147,0.55)]'
                             : 'bg-[#130322]/65 border border-purple-400/25 text-purple-200/85 hover:border-pink-400/50'
@@ -600,7 +600,7 @@ export const ProfileSetupView: React.FC = () => {
       {/* ======================================================== */}
       {/* BOTTOM ACTION BUTTON                                     */}
       {/* ======================================================== */}
-      <div className="w-full max-w-[360px] flex flex-col items-center z-20 shrink-0 pb-0.5 pt-1">
+      <div className="w-full max-w-[380px] flex flex-col items-center z-20 shrink-0 pb-1 pt-1">
         {stage === 'box_closed' && (
           <button
             type="button"
