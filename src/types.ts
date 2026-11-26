@@ -8,7 +8,9 @@ export interface AuthUser {
   avatar: string;
   gender?: string;
   bio?: string;
+  country?: string;
   language?: string;
+  languages?: string[];
   interests?: string[];
   isGuest: boolean;
   createdAt: string;

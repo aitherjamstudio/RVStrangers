@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RVStrangers DevTrack | Amazon-Style Progress Tracker</title>
+  <style>
+    /* =====================================================================
+       AMAZON-STYLE PROGRESS TRACKER STYLES
+       Clean, minimal, mobile-responsive, no external dependencies
+       ===================================================================== */
+    :root {
+      --amz-nav-dark: #131921;
+      --amz-nav-light: #232f3e;
+      --amz-nav-sub: #37475a;
+      --amz-bg: #eaeded;
+      --amz-card-bg: #ffffff;
+      --amz-border: #d5d9d9;
+      --amz-border-focus: #e77600;
+      --amz-text-main: #0f1111;
+      --amz-text-muted: #565959;
+      --amz-green: #067d62;
+      --amz-green-light: #e7f4f0;
+      --amz-amber: #b12704;
+      --amz-yellow: #ffd814;
+      --amz-yellow-hover: #f7ca00;
+      --amz-yellow-border: #fcd200;
+      --amz-blue-link: #007185;
+      --amz-blue-hover: #c7511f;
+      --amz-grey-step: #888c8c;
+      --amz-tag-bg: #f0f2f2;
+      --shadow-sm: 0 1px 3px rgba(15, 17, 17, 0.08);
+      --shadow-md: 0 4px 12px rgba(15, 17, 17, 0.1);
+      --radius-sm: 4px;
+      --radius-md: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--amz-bg);
+      color: var(--amz-text-main);
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 60px;
+    }
+
+    /* Amazon Top Navigation */
+    header.amz-header {
+      background-color: var(--amz-nav-dark);
+      color: #ffffff;
+      padding: 10px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .header-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #fff;
+    }
+    .brand-logo svg {
+      fill: #ff9900;
+    }
+    .brand-title {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+    .brand-subtitle {
+      font-size: 11px;
+      color: #ff9900;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .order-ref-badge {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-family: monospace;
+      font-size: 12px;
+      color: #e6e6e6;
+    }
+    .btn-header {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.4);
+      color: #fff;
+      padding: 5px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .btn-header:hover {
+      background: rgba(255,255,255,0.15);
+      border-color: #fff;
+    }
+
+    /* Subheader breadcrumbs / info */
+    .sub-bar {
+      background: var(--amz-nav-light);
+      color: #ccc;
+      font-size: 12px;
+      padding: 6px 16px;
+    }
+    .sub-bar-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* Main Container */
+    main.amz-main {
+      max-width: 1080px;
+      margin: 18px auto;
+      padding: 0 16px;
+    }
+
+    /* Card Wrapper */
+    .amz-card {
+      background: var(--amz-card-bg);
+      border: 1px solid var(--amz-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+
+    /* Order Header Hero Card */
+    .tracking-hero {
+      border-top: 4px solid var(--amz-green);
+    }
+    .hero-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid #e7e7e7;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .order-heading {
+      font-size: 13px;
+      color: var(--amz-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .project-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--amz-text-main);
+      margin-top: 2px;
+    }
+    .order-meta-info {
+      text-align: right;
+    }
+    .order-meta-info .val {
+      font-weight: 700;
+      color: var(--amz-text-main);
+      font-size: 14px;
+    }
+    .order-meta-info .label {
+      font-size: 12px;
+      color: var(--amz-text-muted);
+    }
+
+    /* Amazon Big Status Announcement */
+    .shipment-status-headline {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .status-badge-lg {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--amz-green);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-badge-lg.completed {
+      color: var(--amz-green);
+    }
+    .status-badge-lg.ongoing {
+      color: #007185;
+    }
+    .status-sub {
+      font-size: 14px;
+      color: var(--amz-text-muted);
+    }
+
+    /* Amazon High-Level 4-Stage Progress Bar */
+    .amz-tracker-stages {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 24px 0 16px 0;
+      position: relative;
+    }
+    .stage-track-bg {
+      position: absolute;
+      top: 15px;
+      left: 30px;
+      right: 30px;
+      height: 6px;
+      background: #e0e0e0;
+      z-index: 1;
+      border-radius: 3px;
+    }
+    .stage-track-fill {
+      position: absolute;
+      top: 15px;
+      left: 30px;
+      height: 6px;
+      background: var(--amz-green);
+      z-index: 2;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+    .stage-step {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 25%;
+      text-align: center;
+    }
+    .stage-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid #d5d9d9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--amz-text-muted);
+      transition: all 0.3s;
+    }
+    .stage-step.done .stage-dot {
+      background: var(--amz-green);
+      border-color: var(--amz-green);
+      color: #ffffff;
+    }
+    .stage-step.active .stage-dot {
+      background: #ffffff;
+      border-color: var(--amz-green);
+      color: var(--amz-green);
+      box-shadow: 0 0 0 4px rgba(6, 125, 98, 0.2);
+    }
+    .stage-label {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 8px;
+      color: var(--amz-text-muted);
+    }
+    .stage-step.active .stage-label {
+      color: var(--amz-text-main);
+      font-weight: 700;
+    }
+    .stage-step.done .stage-label {
+      color: var(--amz-green);
+    }
+
+    /* Overall Stats Row */
+    .metrics-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px dashed var(--amz-border);
+    }
+    .metric-card {
+      background: #f7fafa;
+      border: 1px solid #e7e7e7;
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+    }
+    .metric-card .title {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: var(--amz-text-muted);
+      letter-spacing: 0.5px;
+    }
+    .metric-card .big-val {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--amz-text-main);
+      margin-top: 2px;
+    }
+    .metric-card.milestone {
+      border-left: 4px solid #ff9900;
+      background: #fffbf5;
+    }
+    .metric-card.milestone .big-val {
+      color: #b12704;
+      font-size: 15px;
+      line-height: 1.3;
+    }
+    .metric-card.progress-col {
+      border-left: 4px solid var(--amz-green);
+    }
+    .metric-card.progress-col .big-val {
+      color: var(--amz-green);
+    }
+
+    /* Controls & Filter Bar */
+    .action-controls-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .filter-tabs {
+      display: flex;
+      gap: 4px;
+      background: #e2e6e6;
+      padding: 3px;
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+    }
+    .filter-btn {
+      background: transparent;
+      border: none;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--amz-text-muted);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .filter-btn.active {
+      background: #ffffff;
+      color: var(--amz-text-main);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+    }
+    .filter-btn:hover:not(.active) {
+      color: var(--amz-text-main);
+    }
+
+    .tools-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-action {
+      background: var(--amz-yellow);
+      border: 1px solid var(--amz-yellow-border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .btn-action:hover {
+      background: var(--amz-yellow-hover);
+    }
+    .btn-action.secondary {
+      background: #ffffff;
+      border: 1px solid var(--amz-border);
+    }
+    .btn-action.secondary:hover {
+      background: #f7fafa;
+    }
+
+    /* Phase Timeline Accordion */
+    .timeline-container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .phase-card {
+      background: #ffffff;
+      border: 1px solid var(--amz-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .phase-card:hover {
+      border-color: #b5b9b9;
+      box-shadow: var(--shadow-md);
+    }
+    .phase-card.status-completed {
+      border-left: 5px solid var(--amz-green);
+    }
+    .phase-card.status-in_progress {
+      border-left: 5px solid #ff9900;
+      background: #fffdf9;
+    }
+    .phase-card.status-pending {
+      border-left: 5px solid #a2a6a6;
+    }
+
+    /* Phase Header */
+    .phase-header {
+      padding: 14px 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      user-select: none;
+      background: #ffffff;
+    }
+    .phase-card.status-in_progress .phase-header {
+      background: #fffbf2;
+    }
+    .phase-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+    .phase-icon-bubble {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .status-completed .phase-icon-bubble {
+      background: var(--amz-green);
+      color: #ffffff;
+    }
+    .status-in_progress .phase-icon-bubble {
+      background: #ff9900;
+      color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(255, 153, 0, 0.25);
+      animation: pulse-border 2s infinite;
+    }
+    @keyframes pulse-border {
+      0% { box-shadow: 0 0 0 2px rgba(255, 153, 0, 0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(255, 153, 0, 0.1); }
+      100% { box-shadow: 0 0 0 2px rgba(255, 153, 0, 0.4); }
+    }
+    .status-pending .phase-icon-bubble {
+      background: #e2e6e6;
+      color: var(--amz-grey-step);
+    }
+
+    .phase-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .phase-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .phase-num {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--amz-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .phase-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--amz-text-main);
+    }
+    .phase-milestone-tag {
+      background: #ffe0b2;
+      color: #b12704;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .phase-desc {
+      font-size: 12px;
+      color: var(--amz-text-muted);
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .phase-header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .task-ratio-pill {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--amz-text-muted);
+      background: var(--amz-tag-bg);
+      border: 1px solid #d5d9d9;
+      padding: 3px 8px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .phase-status-select {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--amz-border);
+      background: #fff;
+      cursor: pointer;
+    }
+    .phase-status-select:focus {
+      outline: none;
+      border-color: var(--amz-border-focus);
+    }
+    .chevron-icon {
+      width: 18px;
+      height: 18px;
+      color: var(--amz-text-muted);
+      transition: transform 0.2s ease;
+    }
+    .phase-card.expanded .chevron-icon {
+      transform: rotate(180deg);
+    }
+
+    /* Phase Body (Task Checklist) */
+    .phase-body {
+      display: none;
+      padding: 16px 18px 20px 18px;
+      border-top: 1px solid #edf0f0;
+      background: #fafcfc;
+    }
+    .phase-card.expanded .phase-body {
+      display: block;
+    }
+
+    .progress-bar-container {
+      margin-bottom: 14px;
+    }
+    .progress-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--amz-text-muted);
+      margin-bottom: 4px;
+    }
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: #e2e6e6;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--amz-green);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    /* Task List */
+    .task-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: #ffffff;
+      padding: 9px 12px;
+      border: 1px solid #e3e8e8;
+      border-radius: var(--radius-sm);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .task-item:hover {
+      background: #f7fafa;
+      border-color: #d0d7d7;
+    }
+    .task-checkbox {
+      width: 17px;
+      height: 17px;
+      cursor: pointer;
+      accent-color: var(--amz-green);
+      margin-top: 2px;
+    }
+    .task-text {
+      flex: 1;
+      font-size: 13px;
+      color: var(--amz-text-main);
+      word-break: break-word;
+      line-height: 1.4;
+    }
+    .task-item.completed .task-text {
+      text-decoration: line-through;
+      color: var(--amz-text-muted);
+    }
+    .task-actions {
+      display: flex;
+      gap: 6px;
+      opacity: 0.7;
+      transition: opacity 0.15s;
+    }
+    .task-item:hover .task-actions {
+      opacity: 1;
+    }
+    .btn-icon-tiny {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 4px;
+      color: var(--amz-text-muted);
+      border-radius: 2px;
+    }
+    .btn-icon-tiny:hover {
+      color: var(--amz-text-main);
+      background: #e5e9e9;
+    }
+    .btn-icon-tiny.delete:hover {
+      color: #c00;
+    }
+
+    /* Add Task Input Row */
+    .add-task-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed #d5d9d9;
+    }
+    .input-task {
+      flex: 1;
+      padding: 7px 10px;
+      font-size: 13px;
+      border: 1px solid var(--amz-border);
+      border-radius: var(--radius-sm);
+      outline: none;
+    }
+    .input-task:focus {
+      border-color: var(--amz-border-focus);
+      box-shadow: 0 0 0 2px rgba(228, 121, 17, 0.2);
+    }
+    .btn-add-task {
+      background: #e7e9ec;
+      border: 1px solid #8d9096;
+      border-radius: var(--radius-sm);
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-add-task:hover {
+      background: #dadde1;
+    }
+
+    /* Modal for Edit / Export / Custom Phase */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal-card {
+      background: #ffffff;
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+      width: 100%;
+      max-width: 500px;
+      padding: 22px;
+      position: relative;
+    }
+    .modal-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--amz-text-main);
+    }
+    .modal-body {
+      margin-bottom: 16px;
+    }
+    .modal-input {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 13px;
+      border: 1px solid var(--amz-border);
+      border-radius: var(--radius-sm);
+      margin-top: 6px;
+      box-sizing: border-box;
+    }
+    .modal-textarea {
+      width: 100%;
+      height: 120px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-family: monospace;
+      border: 1px solid var(--amz-border);
+      border-radius: var(--radius-sm);
+      margin-top: 6px;
+      box-sizing: border-box;
+      resize: vertical;
+    }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Toast Notification */
+    .toast-notice {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--amz-nav-dark);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      box-shadow: var(--shadow-md);
+      display: none;
+      z-index: 2000;
+      border-left: 4px solid var(--amz-green);
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 30px;
+      color: var(--amz-text-muted);
+      font-size: 14px;
+    }
+
+    /* Print / PDF friendliness */
+    @media print {
+      body {
+        background: #fff;
+      }
+      header.amz-header, .action-controls-bar, .add-task-row, .task-actions {
+        display: none !important;
+      }
+      .phase-body {
+        display: block !important;
+      }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 680px) {
+      .header-right {
+        display: none;
+      }
+      .amz-card {
+        padding: 14px;
+      }
+      .stage-label {
+        font-size: 10px;
+      }
+      .phase-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .phase-header-right {
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px dashed #e7e7e7;
+      }
+      .status-badge-lg {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================= -->
+  <!-- AMAZON-STYLE HEADER -->
+  <!-- ========================================================= -->
+  <header class="amz-header">
+    <div class="header-inner">
+      <div class="brand-logo">
+        <!-- Minimal Amazon-Style Smile / Box Icon -->
+        <svg width="28" height="24" viewBox="0 0 24 24">
+          <path d="M21 16.5c0 .83-.67 1.5-1.5 1.5h-15c-.83 0-1.5-.67-1.5-1.5v-9c0-.83.67-1.5 1.5-1.5h15c.83 0 1.5.67 1.5 1.5v9z" fill="none" stroke="#ff9900" stroke-width="2"/>
+          <path d="M3 10h18M7 14h2" stroke="#ff9900" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <div>
+          <div class="brand-title">RVStrangers<span style="color:#ff9900; font-weight:400;">DevTrack</span></div>
+          <div class="brand-subtitle">Cloudflare D1 Native Architecture v2.0</div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <span class="order-ref-badge">PROJECT-ID: RVS-D1-TURBO</span>
+        <button class="btn-header" onclick="exportData()">Export Roadmap</button>
+        <button class="btn-header" onclick="openImportModal()">Import</button>
+        <button class="btn-header" onclick="confirmResetDefaults()">Reset Blueprint</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Amazon Subheader Bar -->
+  <div class="sub-bar">
+    <div class="sub-bar-inner">
+      <div><strong>Carrier / Engine:</strong> Serverless Edge (Workers + D1 + Durable Objects + P2P WebRTC)</div>
+      <div id="lastSyncTime">Status: Auto-saved to LocalStorage</div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MAIN TRACKING CONTAINER -->
+  <!-- ========================================================= -->
+  <main class="amz-main">
+
+    <!-- Amazon Order Hero Card -->
+    <div class="amz-card tracking-hero">
+      <div class="hero-top-row">
+        <div>
+          <div class="order-heading">Software Delivery Tracking Details</div>
+          <h1 class="project-name">RVStrangers Cross-Platform Game</h1>
+          <div style="font-size: 13px; color: var(--amz-text-muted); margin-top: 2px;">
+            Target: Android APK (Google Play) &amp; Web PWA &bull; Blueprint v2.0.0
+          </div>
+        </div>
+        <div class="order-meta-info">
+          <div class="label">Target Milestone</div>
+          <div class="val" id="targetMilestoneText">Phase 6: Working MVP</div>
+          <div class="label" style="margin-top: 4px;">Tracking ID: <span style="font-family: monospace; color:#007185;">#RVS-D1-14PHASES</span></div>
+        </div>
+      </div>
+
+      <!-- Prominent Amazon Status Banner -->
+      <div class="shipment-status-headline">
+        <div class="status-badge-lg" id="prominentStatusText">
+          <span id="prominentStatusIcon">&#10003;</span>
+          <span id="currentPhaseBannerTitle">Loading current phase...</span>
+        </div>
+        <div class="status-sub" id="currentPhaseBannerSubtitle">Carrier updating roadmap...</div>
+      </div>
+
+      <!-- High-Level Amazon 4-Stage Shipment Indicator -->
+      <div class="amz-tracker-stages">
+        <div class="stage-track-bg"></div>
+        <div class="stage-track-fill" id="highLevelTrackFill"></div>
+
+        <div class="stage-step" id="stepOrdered">
+          <div class="stage-dot">&#10003;</div>
+          <div class="stage-label">Phase 1-3<br>Edge &amp; Shell Setup</div>
+        </div>
+        <div class="stage-step" id="stepShipped">
+          <div class="stage-dot">4</div>
+          <div class="stage-label">Phase 4-6<br>Core Gameplay MVP</div>
+        </div>
+        <div class="stage-step" id="stepOutForDelivery">
+          <div class="stage-dot">7</div>
+          <div class="stage-label">Phase 7-9<br>Multiplayer &amp; Social</div>
+        </div>
+        <div class="stage-step" id="stepDelivered">
+          <div class="stage-dot">10</div>
+          <div class="stage-label">Phase 10-14<br>Store, Ads &amp; Launch</div>
+        </div>
+      </div>
+
+      <!-- Real-Time Metrics Summary -->
+      <div class="metrics-summary-grid">
+        <div class="metric-card progress-col">
+          <div class="title">Overall Progress</div>
+          <div class="big-val" id="overallPercentText">0%</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">Completed Tasks</div>
+          <div class="big-val" id="completedTasksText">0 / 0</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">Pending Tasks</div>
+          <div class="big-val" id="pendingTasksText">0</div>
+        </div>
+        <div class="metric-card milestone">
+          <div class="title">Current Focus Phase</div>
+          <div class="big-val" id="activePhaseShortText">Phase 1</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action & Filter Bar -->
+    <div class="action-controls-bar">
+      <div class="filter-tabs">
+        <button class="filter-btn active" onclick="setFilter('all')">All Phases (14)</button>
+        <button class="filter-btn" onclick="setFilter('in_progress')">In Progress</button>
+        <button class="filter-btn" onclick="setFilter('pending')">Pending</button>
+        <button class="filter-btn" onclick="setFilter('completed')">Completed</button>
+      </div>
+
+      <div class="tools-group">
+        <button class="btn-action secondary" onclick="expandAllPhases(true)">Expand All</button>
+        <button class="btn-action secondary" onclick="expandAllPhases(false)">Collapse All</button>
+        <button class="btn-action" onclick="openAddPhaseModal()">+ Add Custom Phase</button>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 14-PHASE DETAILED TIMELINE & CHECKLISTS -->
+    <!-- ========================================================= -->
+    <div id="timelineContainer" class="timeline-container">
+      <!-- Generated dynamically by renderRoadmap() -->
+    </div>
+
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- MODALS -->
+  <!-- ========================================================= -->
+
+  <!-- Edit Task Modal -->
+  <div id="editTaskModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 class="modal-title">Edit Milestone Task</h3>
+      <div class="modal-body">
+        <label style="font-size: 12px; color: var(--amz-text-muted);">Task Description</label>
+        <input type="text" id="editTaskInput" class="modal-input" placeholder="Enter task name...">
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action secondary" onclick="closeModal('editTaskModal')">Cancel</button>
+        <button class="btn-action" onclick="saveEditedTask()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Custom Phase Modal -->
+  <div id="addPhaseModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 class="modal-title">Add New Development Phase</h3>
+      <div class="modal-body">
+        <label style="font-size: 12px; color: var(--amz-text-muted);">Phase Title</label>
+        <input type="text" id="newPhaseTitle" class="modal-input" placeholder="e.g. Phase 15: Post-Launch Live Ops &amp; Seasons">
+        <label style="font-size: 12px; color: var(--amz-text-muted); margin-top: 10px; display:block;">Description / Objective</label>
+        <input type="text" id="newPhaseDesc" class="modal-input" placeholder="Brief summary of outputs and goals...">
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action secondary" onclick="closeModal('addPhaseModal')">Cancel</button>
+        <button class="btn-action" onclick="saveNewPhase()">Create Phase</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export / Import Modal -->
+  <div id="importModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 class="modal-title">Import Roadmap Data</h3>
+      <div class="modal-body">
+        <p style="font-size: 12px; color: var(--amz-text-muted); margin-bottom: 6px;">
+          Paste your JSON export here to restore your progress and tasks.
+        </p>
+        <textarea id="importJsonTextarea" class="modal-textarea" placeholder="Paste roadmap JSON data here..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action secondary" onclick="closeModal('importModal')">Cancel</button>
+        <button class="btn-action" onclick="executeImport()">Apply Import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast-notice">Saved changes</div>
+
+  <!-- ========================================================= -->
+  <!-- VANILLA JAVASCRIPT ENGINE -->
+  <!-- ========================================================= -->
+  <script>
+    /* =========================================================
+       DEFAULT ROADMAP INITIALIZATION (14 PHASES FROM BLUEPRINT)
+       ========================================================= */
+    const STORAGE_KEY = 'rvstrangers_progress_tracker_v1';
+
+    const INITIAL_ROADMAP = [
+      {
+        id: 'phase-1',
+        number: 1,
+        title: 'Environment & Cloudflare Setup',
+        milestone: false,
+        desc: 'Set up GitHub repo, Cloudflare Workers environment (wrangler.toml), and Cloudflare D1 database.',
+        status: 'completed', // Defaults to completed or in_progress based on initial progress
+        tasks: [
+          { id: 't1-1', text: 'Set up GitHub repository and branch protection rules', completed: true },
+          { id: 't1-2', text: 'Configure Cloudflare Workers environment (wrangler.toml)', completed: true },
+          { id: 't1-3', text: 'Create Cloudflare D1 database (wrangler d1 create cards-db)', completed: true },
+          { id: 't1-4', text: 'Apply initial SQLite schema migration (0001_initial_schema.sql)', completed: true },
+          { id: 't1-5', text: 'Configure staging and production Worker bindings (env.DB)', completed: true }
+        ]
+      },
+      {
+        id: 'phase-2',
+        number: 2,
+        title: 'Frontend Shell & Capacitor Configuration',
+        milestone: false,
+        desc: 'Scaffold React + TypeScript + Vite project, install TailwindCSS, configure Capacitor for Android.',
+        status: 'completed',
+        tasks: [
+          { id: 't2-1', text: 'Scaffold React + TypeScript + Vite project directory', completed: true },
+          { id: 't2-2', text: 'Install and configure TailwindCSS, Lucide icons, and font styling', completed: true },
+          { id: 't2-3', text: 'Initialize @capacitor/core and configure Android platform wrapper', completed: true },
+          { id: 't2-4', text: 'Verify mobile-responsive frame and 100dvh viewport scaling', completed: true },
+          { id: 't2-5', text: 'Build & test run on Android emulator and web browser', completed: true }
+        ]
+      },
+      {
+        id: 'phase-3',
+        number: 3,
+        title: 'Edge Authentication & Profile Flow',
+        milestone: false,
+        desc: 'Google OAuth verification on Worker via jose, Welcome screen, Guest Mode, and D1 profile persistence.',
+        status: 'completed',
+        tasks: [
+          { id: 't3-1', text: 'Build Google OAuth token verification on Worker using jose Web Crypto', completed: true },
+          { id: 't3-2', text: 'Implement Welcome Screen & Guest Mode (LocalStorage UUID)', completed: true },
+          { id: 't3-3', text: 'Integrate 3D interactive Deck Box hero on login screen (local assets)', completed: true },
+          { id: 't3-4', text: 'Build Profile Identity Card (Nickname, @username, gender, public avatars, bio, searchable country, matchmaking languages, interests)', completed: true },
+          { id: 't3-5', text: 'Persist full profile (country, matchmaking languages, interests, bio) & wallet in Cloudflare D1', completed: true }
+        ]
+      },
+      {
+        id: 'phase-4',
+        number: 4,
+        title: 'Deck Architecture & Content Ingestion',
+        milestone: false,
+        desc: 'Seed Cloudflare D1 with 5 starter decks (150+ cards total) and set up Cloudflare R2 bucket.',
+        status: 'pending',
+        tasks: [
+          { id: 't4-1', text: 'Seed Cloudflare D1 with 5 starter decks (Couples, Friends, Icebreakers, Deep Talks, After Dark)', completed: false },
+          { id: 't4-2', text: 'Configure Cloudflare R2 bucket for high-res deck covers and illustrations', completed: false },
+          { id: 't4-3', text: 'Implement client-side deck catalog view with categories and card counts', completed: false },
+          { id: 't4-4', text: 'Implement 3-question teaser sample modal for unowned decks', completed: false },
+          { id: 't4-5', text: 'Configure client-side catalog caching for zero-latency browsing', completed: false }
+        ]
+      },
+      {
+        id: 'phase-5',
+        number: 5,
+        title: 'Core Gameplay Engine & Card UI (Single Player / Testbench)',
+        milestone: false,
+        desc: 'Build deterministic state machine (gameReducer), 3D card flips, 90s answer timer, and emoji reactions.',
+        status: 'pending',
+        tasks: [
+          { id: 't5-1', text: 'Build pure deterministic TypeScript state machine (gameReducer)', completed: false },
+          { id: 't5-2', text: 'Implement 3D card flip animation & deck theme visuals', completed: false },
+          { id: 't5-3', text: 'Implement 30s card flip countdown timer and auto-advance logic', completed: false },
+          { id: 't5-4', text: 'Build active player answer submission field (max 300 chars, 90s timer)', completed: false },
+          { id: 't5-5', text: 'Implement 30s reaction phase with emoji burst animations (❤️, 😂, 😮, 👏, 🔥)', completed: false }
+        ]
+      },
+      {
+        id: 'phase-6',
+        number: 6,
+        title: 'Local Multiplayer (Trystero + WebRTC)',
+        milestone: true,
+        milestoneTitle: 'WORKING MVP MILESTONE',
+        desc: 'P2P mesh over local Wi-Fi/hotspot with Host QR code generator & scanner. Zero cloud server cost.',
+        status: 'pending',
+        tasks: [
+          { id: 't6-1', text: 'Integrate Trystero WebRTC DataChannels engine', completed: false },
+          { id: 't6-2', text: 'Implement Host Room 6-character room code and QR code generator (qrcode.react)', completed: false },
+          { id: 't6-3', text: 'Build Client camera QR code scanner (html5-qrcode) for 1-tap join', completed: false },
+          { id: 't6-4', text: 'Wire up P2P data channels to deterministic gameReducer state machine', completed: false },
+          { id: 't6-5', text: 'Validate 4 physical phones playing full 30-card game on local hotspot with zero server fees', completed: false }
+        ]
+      },
+      {
+        id: 'phase-7',
+        number: 7,
+        title: 'Online Multiplayer with Friends (Cloudflare Durable Objects)',
+        milestone: false,
+        desc: 'Server-authoritative game rooms via RoomDO, WebSockets, WebSocket Hibernation, and turn timers.',
+        status: 'pending',
+        tasks: [
+          { id: 't7-1', text: 'Implement RoomDO Durable Object class for stateful room actors', completed: false },
+          { id: 't7-2', text: 'Implement WebSocket connection handlers and room routing (wss://api.game.com/room/WXYZ)', completed: false },
+          { id: 't7-3', text: 'Enable WebSocket Hibernation API for zero compute billing during conversational pauses', completed: false },
+          { id: 't7-4', text: 'Implement authoritative server turn timers (30s flip, 90s answer, 60s disconnect grace)', completed: false },
+          { id: 't7-5', text: 'Trigger D1 batch crediting 20 completion reward coins to all players upon game over', completed: false }
+        ]
+      },
+      {
+        id: 'phase-8',
+        number: 8,
+        title: 'Stranger Matchmaking Queue',
+        milestone: false,
+        desc: 'MatchmakerDO queue pairing strangers based on Language, Category, and Gender preferences.',
+        status: 'pending',
+        tasks: [
+          { id: 't8-1', text: 'Implement MatchmakerDO in-memory matchmaking queue actor', completed: false },
+          { id: 't8-2', text: 'Build matchmaking preference modal (Language, Deck Category, Gender preference)', completed: false },
+          { id: 't8-3', text: 'Implement 60-second queue timeout with graceful search animation', completed: false },
+          { id: 't8-4', text: 'Build temporary preview lobby with Accept / Skip opponent decision', completed: false },
+          { id: 't8-5', text: 'Pair compatible players and transition to dedicated RoomDO session', completed: false }
+        ]
+      },
+      {
+        id: 'phase-9',
+        number: 9,
+        title: 'Social Graph & Messaging',
+        milestone: false,
+        desc: 'Friends tab, username search in D1, direct invites via UserPresenceDO, and persistent 1-on-1 chat in D1.',
+        status: 'pending',
+        tasks: [
+          { id: 't9-1', text: 'Build Friends tab and debounce search against @username in D1 profiles', completed: false },
+          { id: 't9-2', text: 'Implement friend request lifecycle (PENDING -> ACCEPTED / REJECTED / BLOCKED)', completed: false },
+          { id: 't9-3', text: 'Implement real-time game invitations through UserPresenceDO WebSocket push', completed: false },
+          { id: 't9-4', text: 'Build in-game ephemeral room chat (DO RAM with zero database storage overhead)', completed: false },
+          { id: 't9-5', text: 'Build 1-on-1 persistent private messaging in D1 (private_messages, 30-day retention)', completed: false }
+        ]
+      },
+      {
+        id: 'phase-10',
+        number: 10,
+        title: 'Virtual Wallet & D1 Batch Ledger',
+        milestone: false,
+        desc: 'Double-entry accounting in D1 (wallet_transactions), atomic db.batch() updates, and idempotency keys.',
+        status: 'pending',
+        tasks: [
+          { id: 't10-1', text: 'Implement double-entry accounting ledger in D1 (wallet_transactions append-only)', completed: false },
+          { id: 't10-2', text: 'Write atomic spend/credit service with env.DB.batch() non-negative check', completed: false },
+          { id: 't10-3', text: 'Implement client UUID idempotencyKey to prevent duplicate spends on retries', completed: false },
+          { id: 't10-4', text: 'Build in-app Wallet UI widget showing live Coins and Diamonds balances', completed: false },
+          { id: 't10-5', text: 'Implement currency conversion route (100 coins = 1 diamond)', completed: false }
+        ]
+      },
+      {
+        id: 'phase-11',
+        number: 11,
+        title: 'Rewarded Ads & AdMob Integration',
+        milestone: false,
+        desc: 'Native AdMob SDK via Capacitor, Rewarded Video (+25 coins), Double-Reward modal, and SSV verification.',
+        status: 'pending',
+        tasks: [
+          { id: 't11-1', text: 'Install and bridge @capacitor-community/admob on Android shell', completed: false },
+          { id: 't11-2', text: 'Configure Rewarded Video ads (+25 coins, max 5/day, 3 min cooldown)', completed: false },
+          { id: 't11-3', text: 'Build Double-Reward (2x) optional modal after game completion (20 -> 40 coins)', completed: false },
+          { id: 't11-4', text: 'Implement AdMob Server-Side Verification (SSV) webhook on Cloudflare Worker', completed: false },
+          { id: 't11-5', text: 'Verify Google ECDSA cryptographic signature before crediting D1 wallet', completed: false }
+        ]
+      },
+      {
+        id: 'phase-12',
+        number: 12,
+        title: 'Google Play Billing & Digital Store',
+        milestone: false,
+        desc: 'Google Play Billing for Diamond packs, backend receipt verification, and Store deck unlock flow.',
+        status: 'pending',
+        tasks: [
+          { id: 't12-1', text: 'Configure Play Console in-app products (diamonds_pack_10, 60, 150)', completed: false },
+          { id: 't12-2', text: 'Integrate @capacitor/in-app-purchases native bridge', completed: false },
+          { id: 't12-3', text: 'Implement backend receipt validation via Google Play Android Publisher API', completed: false },
+          { id: 't12-4', text: 'Build Digital Store screen with Coins unlock (Standard) & Diamonds unlock (Premium)', completed: false },
+          { id: 't12-5', text: 'Record purchases in D1 deck_ownership and wallet_transactions in atomic batch', completed: false }
+        ]
+      },
+      {
+        id: 'phase-13',
+        number: 13,
+        title: 'Backoffice Admin Dashboard (admin.example.com)',
+        milestone: false,
+        desc: 'Cloudflare Pages admin portal: Deck CMS, translation editor, user moderation, and financial auditor.',
+        status: 'pending',
+        tasks: [
+          { id: 't13-1', text: 'Scaffold admin portal on Cloudflare Pages with RBAC (isAdmin: true edge JWT)', completed: false },
+          { id: 't13-2', text: 'Build Deck & Card CMS with question editor & Cloudflare R2 cover uploader', completed: false },
+          { id: 't13-3', text: 'Implement multilingual translation side-by-side editor (ES, FR, DE, HI)', completed: false },
+          { id: 't13-4', text: 'Build User Search, Ban/Mute controls, and User Reports queue (user_reports)', completed: false },
+          { id: 't13-5', text: 'Implement Financial Ledger Auditor & real-time active rooms monitor', completed: false }
+        ]
+      },
+      {
+        id: 'phase-14',
+        number: 14,
+        title: 'Security Hardening, 20-Tester Closed Track & Production Launch',
+        milestone: true,
+        milestoneTitle: 'PRODUCTION RELEASE MILESTONE',
+        desc: '14-day 20-tester closed beta track, UGC profanity filters/reporting, IARC 16+ rating, and Play Store launch.',
+        status: 'pending',
+        tasks: [
+          { id: 't14-1', text: 'Assemble 25 external testers for Google Play mandatory 14-day continuous closed test', completed: false },
+          { id: 't14-2', text: 'Implement automated profanity filter & UGC report/block flow for Google Play compliance', completed: false },
+          { id: 't14-3', text: 'Complete Google Play Data Safety declaration and IARC Age Rating questionnaire (16+/17+)', completed: false },
+          { id: 't14-4', text: 'Conduct penetration testing on wallet endpoints and parameterize all D1 queries', completed: false },
+          { id: 't14-5', text: 'Publish final production AAB bundle to Google Play Store and deploy Web PWA', completed: false }
+        ]
+      }
+    ];
+
+    /* App State */
+    let roadmapData = [];
+    let currentFilter = 'all';
+    let editingTaskContext = null; // { phaseId, taskId }
+
+    /* =========================================================
+       STORAGE & LIFECYCLE
+       ========================================================= */
+    function loadRoadmap() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          roadmapData = JSON.parse(stored);
+        } else {
+          roadmapData = JSON.parse(JSON.stringify(INITIAL_ROADMAP));
+          saveRoadmap();
+        }
+      } catch (err) {
+        console.error('Error loading roadmap from storage:', err);
+        roadmapData = JSON.parse(JSON.stringify(INITIAL_ROADMAP));
+      }
+      renderRoadmap();
+    }
+
+    function saveRoadmap() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(roadmapData));
+        showToast('Roadmap saved to LocalStorage');
+        const now = new Date();
+        document.getElementById('lastSyncTime').textContent = 
+          `Auto-saved: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+      } catch (err) {
+        console.error('Error saving roadmap:', err);
+      }
+    }
+
+    function confirmResetDefaults() {
+      if (confirm('Are you sure you want to reset all progress and tasks to the default blueprint roadmap? This will overwrite your current edits.')) {
+        roadmapData = JSON.parse(JSON.stringify(INITIAL_ROADMAP));
+        saveRoadmap();
+        renderRoadmap();
+        showToast('Reset to blueprint default');
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 2500);
+    }
+
+    /* =========================================================
+       CALCULATIONS & METRICS
+       ========================================================= */
+    function calculateMetrics() {
+      let totalTasks = 0;
+      let completedTasks = 0;
+      let activePhase = null;
+      let nextMilestone = null;
+
+      roadmapData.forEach(phase => {
+        const pTasks = phase.tasks || [];
+        totalTasks += pTasks.length;
+        completedTasks += pTasks.filter(t => t.completed).length;
+
+        if (phase.status === 'in_progress' && !activePhase) {
+          activePhase = phase;
+        }
+
+        if (phase.milestone && phase.status !== 'completed' && !nextMilestone) {
+          nextMilestone = phase;
+        }
+      });
+
+      // If no phase is explicitly in_progress, pick the first pending phase
+      if (!activePhase) {
+        activePhase = roadmapData.find(p => p.status === 'pending') || roadmapData[roadmapData.length - 1];
+      }
+
+      // If no next milestone found, default to final phase
+      if (!nextMilestone) {
+        nextMilestone = roadmapData[roadmapData.length - 1];
+      }
+
+      const pendingTasks = totalTasks - completedTasks;
+      const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+      return {
+        totalTasks,
+        completedTasks,
+        pendingTasks,
+        progressPercent,
+        activePhase,
+        nextMilestone
+      };
+    }
+
+    /* =========================================================
+       RENDER FUNCTIONS
+       ========================================================= */
+    function renderRoadmap() {
+      const metrics = calculateMetrics();
+
+      // 1. Update Hero Metrics
+      document.getElementById('overallPercentText').textContent = `${metrics.progressPercent}%`;
+      document.getElementById('completedTasksText').textContent = `${metrics.completedTasks} / ${metrics.totalTasks}`;
+      document.getElementById('pendingTasksText').textContent = metrics.pendingTasks;
+      
+      const activePhase = metrics.activePhase;
+      if (activePhase) {
+        document.getElementById('activePhaseShortText').textContent = `Phase ${activePhase.number}`;
+        document.getElementById('currentPhaseBannerTitle').textContent = `Phase ${activePhase.number}: ${activePhase.title}`;
+        document.getElementById('currentPhaseBannerSubtitle').textContent = 
+          `Status: ${activePhase.status.replace('_', ' ').toUpperCase()} • ${activePhase.desc}`;
+        
+        const bannerIcon = document.getElementById('prominentStatusIcon');
+        const bannerText = document.getElementById('prominentStatusText');
+        if (activePhase.status === 'completed') {
+          bannerIcon.innerHTML = '&#10003;';
+          bannerText.className = 'status-badge-lg completed';
+        } else if (activePhase.status === 'in_progress') {
+          bannerIcon.innerHTML = '&#9658;';
+          bannerText.className = 'status-badge-lg ongoing';
+        } else {
+          bannerIcon.innerHTML = '&#9679;';
+          bannerText.className = 'status-badge-lg';
+        }
+      }
+
+      const nextMilestone = metrics.nextMilestone;
+      if (nextMilestone) {
+        document.getElementById('targetMilestoneText').textContent = 
+          `Phase ${nextMilestone.number}: ${nextMilestone.milestoneTitle || nextMilestone.title}`;
+      }
+
+      // 2. High-Level Amazon 4-Stage Progress Bar
+      updateHighLevelTracker(metrics.progressPercent);
+
+      // 3. Render Phases List
+      const container = document.getElementById('timelineContainer');
+      container.innerHTML = '';
+
+      const filteredPhases = roadmapData.filter(phase => {
+        if (currentFilter === 'all') return true;
+        return phase.status === currentFilter;
+      });
+
+      if (filteredPhases.length === 0) {
+        container.innerHTML = `<div class="empty-state">No phases match the filter "<strong>${currentFilter}</strong>".</div>`;
+        return;
+      }
+
+      filteredPhases.forEach((phase) => {
+        const card = createPhaseCardElement(phase);
+        container.appendChild(card);
+      });
+    }
+
+    function updateHighLevelTracker(percent) {
+      const fillEl = document.getElementById('highLevelTrackFill');
+      fillEl.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+
+      const s1 = document.getElementById('stepOrdered');
+      const s2 = document.getElementById('stepShipped');
+      const s3 = document.getElementById('stepOutForDelivery');
+      const s4 = document.getElementById('stepDelivered');
+
+      // Clear states
+      [s1, s2, s3, s4].forEach(s => s.classList.remove('done', 'active'));
+
+      if (percent >= 100) {
+        s1.classList.add('done');
+        s2.classList.add('done');
+        s3.classList.add('done');
+        s4.classList.add('done');
+      } else if (percent >= 70) {
+        s1.classList.add('done');
+        s2.classList.add('done');
+        s3.classList.add('done');
+        s4.classList.add('active');
+      } else if (percent >= 40) {
+        s1.classList.add('done');
+        s2.classList.add('done');
+        s3.classList.add('active');
+      } else if (percent >= 20) {
+        s1.classList.add('done');
+        s2.classList.add('active');
+      } else {
+        s1.classList.add('active');
+      }
+    }
+
+    function createPhaseCardElement(phase) {
+      const card = document.createElement('div');
+      card.className = `phase-card status-${phase.status}`;
+      card.id = `card-${phase.id}`;
+
+      // Calculate task progress within this phase
+      const tasks = phase.tasks || [];
+      const total = tasks.length;
+      const completed = tasks.filter(t => t.completed).length;
+      const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      // Status icon
+      let statusIconHtml = phase.number;
+      if (phase.status === 'completed') statusIconHtml = '&#10003;';
+      if (phase.status === 'in_progress') statusIconHtml = '&#9658;';
+
+      const milestoneBadgeHtml = phase.milestone 
+        ? `<span class="phase-milestone-tag">${phase.milestoneTitle || 'Milestone'}</span>` 
+        : '';
+
+      card.innerHTML = `
+        <div class="phase-header" onclick="togglePhaseExpand('${phase.id}')">
+          <div class="phase-header-left">
+            <div class="phase-icon-bubble">${statusIconHtml}</div>
+            <div class="phase-info">
+              <div class="phase-title-row">
+                <span class="phase-num">Phase ${phase.number}</span>
+                <span class="phase-title">${escapeHtml(phase.title)}</span>
+                ${milestoneBadgeHtml}
+              </div>
+              <div class="phase-desc">${escapeHtml(phase.desc || '')}</div>
+            </div>
+          </div>
+          
+          <div class="phase-header-right" onclick="event.stopPropagation()">
+            <span class="task-ratio-pill">${completed}/${total} Tasks (${percent}%)</span>
+            
+            <select class="phase-status-select" onchange="changePhaseStatus('${phase.id}', this.value)">
+              <option value="pending" ${phase.status === 'pending' ? 'selected' : ''}>Pending</option>
+              <option value="in_progress" ${phase.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
+              <option value="completed" ${phase.status === 'completed' ? 'selected' : ''}>Completed</option>
+            </select>
+
+            <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <div class="phase-body">
+          <div class="progress-bar-container">
+            <div class="progress-bar-label">
+              <span>Phase Completion</span>
+              <span>${percent}%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" style="width: ${percent}%;"></div>
+            </div>
+          </div>
+
+          <ul class="task-list" id="taskList-${phase.id}">
+            ${tasks.map(task => `
+              <li class="task-item ${task.completed ? 'completed' : ''}" id="task-${task.id}">
+                <input 
+                  type="checkbox" 
+                  class="task-checkbox" 
+                  ${task.completed ? 'checked' : ''} 
+                  onchange="toggleTask('${phase.id}', '${task.id}', this.checked)"
+                >
+                <span class="task-text">${escapeHtml(task.text)}</span>
+                <div class="task-actions">
+                  <button class="btn-icon-tiny" title="Edit Task" onclick="openEditTaskModal('${phase.id}', '${task.id}')">&#9998;</button>
+                  <button class="btn-icon-tiny delete" title="Delete Task" onclick="deleteTask('${phase.id}', '${task.id}')">&times;</button>
+                </div>
+              </li>
+            `).join('')}
+          </ul>
+
+          <div class="add-task-row">
+            <input 
+              type="text" 
+              class="input-task" 
+              id="newTaskInput-${phase.id}" 
+              placeholder="Add next action item for Phase ${phase.number}..."
+              onkeydown="if(event.key === 'Enter') handleAddTask('${phase.id}')"
+            >
+            <button class="btn-add-task" onclick="handleAddTask('${phase.id}')">+ Add Task</button>
+          </div>
+        </div>
+      `;
+
+      // Keep expanded if previously open or if in progress
+      if (phase.status === 'in_progress' || phase._isExpanded) {
+        card.classList.add('expanded');
+      }
+
+      return card;
+    }
+
+    function togglePhaseExpand(phaseId) {
+      const card = document.getElementById(`card-${phaseId}`);
+      if (card) {
+        card.classList.toggle('expanded');
+        const phase = roadmapData.find(p => p.id === phaseId);
+        if (phase) {
+          phase._isExpanded = card.classList.contains('expanded');
+        }
+      }
+    }
+
+    function expandAllPhases(expand) {
+      roadmapData.forEach(p => p._isExpanded = expand);
+      const cards = document.querySelectorAll('.phase-card');
+      cards.forEach(card => {
+        if (expand) {
+          card.classList.add('expanded');
+        } else {
+          card.classList.remove('expanded');
+        }
+      });
+    }
+
+    /* =========================================================
+       TASK & STATUS MUTATIONS
+       ========================================================= */
+    function toggleTask(phaseId, taskId, isChecked) {
+      const phase = roadmapData.find(p => p.id === phaseId);
+      if (!phase) return;
+
+      const task = phase.tasks.find(t => t.id === taskId);
+      if (task) {
+        task.completed = isChecked;
+
+        // Auto-update phase status if all tasks are finished
+        const total = phase.tasks.length;
+        const completed = phase.tasks.filter(t => t.completed).length;
+        if (completed === total && total > 0) {
+          phase.status = 'completed';
+        } else if (completed > 0 && phase.status === 'pending') {
+          phase.status = 'in_progress';
+        }
+
+        saveRoadmap();
+        renderRoadmap();
+      }
+    }
+
+    function handleAddTask(phaseId) {
+      const input = document.getElementById(`newTaskInput-${phaseId}`);
+      if (!input) return;
+      const text = input.value.trim();
+      if (!text) return;
+
+      const phase = roadmapData.find(p => p.id === phaseId);
+      if (phase) {
+        phase.tasks.push({
+          id: 't-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+          text: text,
+          completed: false
+        });
+        input.value = '';
+        saveRoadmap();
+        renderRoadmap();
+      }
+    }
+
+    function deleteTask(phaseId, taskId) {
+      const phase = roadmapData.find(p => p.id === phaseId);
+      if (!phase) return;
+
+      phase.tasks = phase.tasks.filter(t => t.id !== taskId);
+      saveRoadmap();
+      renderRoadmap();
+    }
+
+    function changePhaseStatus(phaseId, newStatus) {
+      const phase = roadmapData.find(p => p.id === phaseId);
+      if (phase) {
+        phase.status = newStatus;
+        saveRoadmap();
+        renderRoadmap();
+      }
+    }
+
+    function setFilter(filterType) {
+      currentFilter = filterType;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.toLowerCase().includes(filterType.replace('_', ' ')));
+      });
+      renderRoadmap();
+    }
+
+    /* =========================================================
+       MODALS: EDIT TASK & ADD PHASE
+       ========================================================= */
+    function openEditTaskModal(phaseId, taskId) {
+      const phase = roadmapData.find(p => p.id === phaseId);
+      if (!phase) return;
+      const task = phase.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      editingTaskContext = { phaseId, taskId };
+      document.getElementById('editTaskInput').value = task.text;
+      document.getElementById('editTaskModal').classList.add('open');
+      document.getElementById('editTaskInput').focus();
+    }
+
+    function saveEditedTask() {
+      if (!editingTaskContext) return;
+      const newText = document.getElementById('editTaskInput').value.trim();
+      if (!newText) return;
+
+      const phase = roadmapData.find(p => p.id === editingTaskContext.phaseId);
+      if (phase) {
+        const task = phase.tasks.find(t => t.id === editingTaskContext.taskId);
+        if (task) {
+          task.text = newText;
+          saveRoadmap();
+          renderRoadmap();
+        }
+      }
+      closeModal('editTaskModal');
+    }
+
+    function openAddPhaseModal() {
+      document.getElementById('newPhaseTitle').value = '';
+      document.getElementById('newPhaseDesc').value = '';
+      document.getElementById('addPhaseModal').classList.add('open');
+    }
+
+    function saveNewPhase() {
+      const title = document.getElementById('newPhaseTitle').value.trim();
+      const desc = document.getElementById('newPhaseDesc').value.trim();
+      if (!title) {
+        alert('Please enter a phase title');
+        return;
+      }
+
+      const nextNum = roadmapData.length + 1;
+      const newPhase = {
+        id: 'phase-' + Date.now(),
+        number: nextNum,
+        title: title,
+        desc: desc || '',
+        status: 'pending',
+        milestone: false,
+        tasks: []
+      };
+
+      roadmapData.push(newPhase);
+      saveRoadmap();
+      renderRoadmap();
+      closeModal('addPhaseModal');
+      showToast(`Added Phase ${nextNum}`);
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('open');
+    }
+
+    /* =========================================================
+       IMPORT & EXPORT
+       ========================================================= */
+    function exportData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(roadmapData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `RVStrangers_Roadmap_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('Roadmap exported to JSON file');
+    }
+
+    function openImportModal() {
+      document.getElementById('importJsonTextarea').value = '';
+      document.getElementById('importModal').classList.add('open');
+    }
+
+    function executeImport() {
+      const jsonStr = document.getElementById('importJsonTextarea').value.trim();
+      if (!jsonStr) {
+        alert('Please paste valid JSON data');
+        return;
+      }
+      try {
+        const parsed = JSON.parse(jsonStr);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
+          roadmapData = parsed;
+          saveRoadmap();
+          renderRoadmap();
+          closeModal('importModal');
+          showToast('Roadmap successfully imported!');
+        } else {
+          alert('Invalid format. Expecting an array of Phase objects.');
+        }
+      } catch (err) {
+        alert('JSON Parsing Error: ' + err.message);
+      }
+    }
+
+    /* Utility function to prevent XSS in text rendering */
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Initialize application on load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadRoadmap();
+    });
+  </script>
+</body>
+</html>

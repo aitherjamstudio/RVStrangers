@@ -47,7 +47,9 @@ interface GameStore {
     avatar: string;
     gender?: string;
     bio?: string;
+    country?: string;
     language?: string;
+    languages?: string[];
     interests?: string[];
   }) => Promise<boolean>;
   initSessionFromD1: () => Promise<void>;
@@ -132,7 +134,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
           avatar: me.user.avatar,
           gender: me.user.gender,
           bio: me.user.bio,
+          country: me.user.country,
           language: me.user.language,
+          languages: Array.isArray(me.user.languages) ? me.user.languages : (me.user.language ? [me.user.language] : ['English']),
           interests: Array.isArray(me.user.interests) ? me.user.interests : [],
           isGuest: Boolean(me.user.isGuest),
           createdAt: new Date().toISOString(),
@@ -220,7 +224,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
           avatar: res.user.avatar,
           gender: res.user.gender,
           bio: res.user.bio,
+          country: res.user.country,
           language: res.user.language,
+          languages: Array.isArray(res.user.languages) ? res.user.languages : (res.user.language ? [res.user.language] : ['English']),
           interests: Array.isArray(res.user.interests) ? res.user.interests : [],
           isGuest: false,
           createdAt: new Date().toISOString(),
@@ -248,6 +254,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const current = get().currentUser;
     if (!current) return false;
     const cleanHandle = data.handle.trim().replace(/^@+/, '').toLowerCase();
+    const nextLanguages = data.languages && data.languages.length > 0
+      ? data.languages
+      : (data.language ? [data.language] : current.languages || ['English']);
     const updatedUser: AuthUser = {
       ...current,
       name: data.name.trim() || current.name,
@@ -255,7 +264,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       avatar: data.avatar || current.avatar,
       gender: data.gender ?? current.gender,
       bio: data.bio !== undefined ? data.bio : current.bio,
-      language: data.language ?? current.language,
+      country: data.country !== undefined ? data.country : current.country,
+      language: nextLanguages[0] || data.language || current.language || 'English',
+      languages: nextLanguages,
       interests: data.interests ?? current.interests,
     };
     const token = get().token;
@@ -267,7 +278,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
           avatar: updatedUser.avatar,
           gender: updatedUser.gender,
           bio: updatedUser.bio,
+          country: updatedUser.country,
           language: updatedUser.language,
+          languages: updatedUser.languages,
           interests: updatedUser.interests,
         },
         token
@@ -282,7 +295,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         updatedUser.avatar = res.user.avatar ?? updatedUser.avatar;
         updatedUser.gender = res.user.gender ?? updatedUser.gender;
         updatedUser.bio = res.user.bio ?? updatedUser.bio;
+        updatedUser.country = res.user.country ?? updatedUser.country;
         updatedUser.language = res.user.language ?? updatedUser.language;
+        updatedUser.languages = Array.isArray(res.user.languages) ? res.user.languages : updatedUser.languages;
         updatedUser.interests = Array.isArray(res.user.interests) ? res.user.interests : updatedUser.interests;
       }
     }

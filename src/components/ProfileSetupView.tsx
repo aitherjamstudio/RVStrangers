@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { ProfileCard3D, SetupStage } from './ProfileCard3D';
 import { AVATAR_OPTIONS, DEFAULT_AVATAR_PATH, resolveAvatarUrl } from '../utils/avatars';
+import { COUNTRIES, MATCHMAKING_LANGUAGES } from '../utils/profileCatalogs';
 import { api } from '../services/api';
 import {
   Sparkles,
@@ -11,6 +12,8 @@ import {
   AtSign,
   Quote,
   Globe,
+  MapPin,
+  Search,
   Tag,
   Pencil,
   ChevronDown,
@@ -24,18 +27,6 @@ const GENDERS = [
   { value: 'male', label: 'Male' },
   { value: 'non-binary', label: 'Non-binary' },
   { value: 'prefer-not-to-say', label: 'Prefer not to say' },
-];
-
-const LANGUAGES = [
-  'English',
-  'Spanish',
-  'French',
-  'German',
-  'Hindi',
-  'Portuguese',
-  'Japanese',
-  'Korean',
-  'Arabic',
 ];
 
 const INTEREST_OPTIONS = ['Games', 'Music', 'Psychology', 'Movies', 'Travel', 'Food'];
@@ -83,8 +74,13 @@ export const ProfileSetupView: React.FC = () => {
   const [bio, setBio] = useState(
     currentUser?.bio || 'Here for deep conversations and interesting people.'
   );
-  const [language, setLanguage] = useState(
-    currentUser?.language && LANGUAGES.includes(currentUser.language) ? currentUser.language : 'English'
+  const [country, setCountry] = useState(currentUser?.country || '');
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(
+    currentUser?.languages && currentUser.languages.length > 0
+      ? currentUser.languages
+      : currentUser?.language && MATCHMAKING_LANGUAGES.includes(currentUser.language)
+      ? [currentUser.language]
+      : ['English']
   );
   const [interests, setInterests] = useState<string[]>(
     currentUser?.interests && currentUser.interests.length > 0
@@ -99,6 +95,10 @@ export const ProfileSetupView: React.FC = () => {
       : DEFAULT_AVATAR_PATH;
   const [selectedAvatar, setSelectedAvatar] = useState<string>(initialAvatar);
   const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false);
+  const [isCountryPickerOpen, setIsCountryPickerOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
+  const [isLanguagePickerOpen, setIsLanguagePickerOpen] = useState(false);
+  const [languageSearch, setLanguageSearch] = useState('');
 
   const [usernameStatus, setUsernameStatus] = useState<'valid' | 'taken' | 'invalid' | 'checking'>('valid');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -143,6 +143,19 @@ export const ProfileSetupView: React.FC = () => {
     });
   };
 
+  const toggleLanguage = (lang: string) => {
+    setSelectedLanguages((prev) => {
+      if (prev.includes(lang)) {
+        if (prev.length === 1) {
+          showToast('Keep at least 1 language selected for matchmaking.');
+          return prev;
+        }
+        return prev.filter((item) => item !== lang);
+      }
+      return [...prev, lang];
+    });
+  };
+
   // 1. Box Click: Opens lid & reveals card
   const handleBoxClick = () => {
     if (stage === 'box_closed') setStage('box_opening');
@@ -178,6 +191,11 @@ export const ProfileSetupView: React.FC = () => {
       showToast('That username is already taken. Try another!');
       return;
     }
+    if (selectedLanguages.length === 0) {
+      showToast('Select at least 1 language for matchmaking.');
+      setIsLanguagePickerOpen(true);
+      return;
+    }
 
     setIsSubmitting(true);
     const ok = await updateUserProfile({
@@ -186,7 +204,9 @@ export const ProfileSetupView: React.FC = () => {
       avatar: selectedAvatar,
       gender,
       bio: bio.trim(),
-      language,
+      country,
+      language: selectedLanguages[0] || 'English',
+      languages: selectedLanguages,
       interests,
     });
     if (!ok) {
@@ -292,7 +312,8 @@ export const ProfileSetupView: React.FC = () => {
             handle={username}
             gender={gender}
             bio={bio}
-            language={language}
+            country={country}
+            languages={selectedLanguages}
             interests={interests}
             onBoxClick={handleBoxClick}
             onCardClick={handleCardClick}
@@ -478,25 +499,51 @@ export const ProfileSetupView: React.FC = () => {
                 </span>
               </label>
 
-              {/* Row 4: Language */}
-              <div className="relative flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors">
-                <Globe className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5">Language</span>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    aria-label="Language"
-                    className="w-full bg-transparent text-xs font-bold text-white focus:outline-none appearance-none pr-5 cursor-pointer leading-tight"
-                  >
-                    {LANGUAGES.map((lang) => (
-                      <option key={lang} value={lang} className="bg-[#1a052b] text-white">
-                        {lang}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <ChevronDown className="w-3.5 h-3.5 text-purple-300/70 pointer-events-none shrink-0" />
+              {/* Row 4: Country + Matchmaking Languages */}
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+                {/* Searchable Country Dropdown Trigger */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCountrySearch('');
+                    setIsCountryPickerOpen(true);
+                  }}
+                  aria-label="Select country"
+                  className="relative flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 hover:border-[#FF2E93] px-2.5 py-1.5 transition-colors text-left"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5">Country</span>
+                    <span className={`block text-xs font-bold truncate leading-tight ${country ? 'text-white' : 'text-purple-300/50'}`}>
+                      {country || 'Select'}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-3 h-3 text-purple-300/70 shrink-0" />
+                </button>
+
+                {/* Matchmaking Languages Multi-Select Trigger */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLanguageSearch('');
+                    setIsLanguagePickerOpen(true);
+                  }}
+                  aria-label="Select matchmaking languages"
+                  className="relative flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 hover:border-[#FF2E93] px-2.5 py-1.5 transition-colors text-left"
+                >
+                  <Globe className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5 truncate">
+                      Matchmaking Languages
+                    </span>
+                    <span className="block text-xs font-bold text-white truncate leading-tight">
+                      {selectedLanguages.length > 1
+                        ? `${selectedLanguages[0]} +${selectedLanguages.length - 1}`
+                        : selectedLanguages[0] || 'English'}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-3 h-3 text-purple-300/70 shrink-0" />
+                </button>
               </div>
 
               {/* Row 5: Interests (up to 6) */}
@@ -652,6 +699,154 @@ export const ProfileSetupView: React.FC = () => {
                 );
               })}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* SEARCHABLE COUNTRY PICKER MODAL                          */}
+      {/* ======================================================== */}
+      {isCountryPickerOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-[#07000E]/85 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsCountryPickerOpen(false)}
+        >
+          <div
+            className="w-full max-w-[360px] max-h-[80dvh] rounded-[28px] bg-[#1a052b] border border-[#FF2E93]/70 shadow-[0_0_45px_rgba(217,70,239,0.5)] p-4 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2.5 border-b border-pink-500/20 shrink-0">
+              <div>
+                <h2 className="text-sm font-black text-white">Country of Residence</h2>
+                <p className="text-[10px] text-purple-300/75">Select where you currently live</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCountryPickerOpen(false)}
+                className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-purple-200 hover:bg-white/15"
+                aria-label="Close country picker"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="relative my-2.5 shrink-0">
+              <Search className="w-3.5 h-3.5 text-pink-300/80 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                autoFocus
+                value={countrySearch}
+                onChange={(e) => setCountrySearch(e.target.value)}
+                placeholder="Search country..."
+                className="w-full h-9 pl-8 pr-3 rounded-xl bg-[#130322] border border-pink-400/30 text-xs font-semibold text-white placeholder-purple-300/40 focus:outline-none focus:border-[#FF2E93]"
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto no-scrollbar space-y-1 pr-0.5">
+              {COUNTRIES.filter((c) =>
+                c.toLowerCase().includes(countrySearch.trim().toLowerCase())
+              ).map((c) => {
+                const isSelected = country === c;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      setCountry(c);
+                      setIsCountryPickerOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between transition-colors ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-[#FF2E93]/35 to-[#C026D3]/35 border border-[#FF2E93]/75 text-white'
+                        : 'bg-[#130322]/60 border border-purple-400/15 text-purple-100/90 hover:border-pink-400/45'
+                    }`}
+                  >
+                    <span className="truncate">{c}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-pink-300 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MATCHMAKING LANGUAGES MULTI-SELECT MODAL                 */}
+      {/* ======================================================== */}
+      {isLanguagePickerOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-[#07000E]/85 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsLanguagePickerOpen(false)}
+        >
+          <div
+            className="w-full max-w-[360px] max-h-[82dvh] rounded-[28px] bg-[#1a052b] border border-[#FF2E93]/70 shadow-[0_0_45px_rgba(217,70,239,0.5)] p-4 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-pink-500/20 shrink-0">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-sm font-black text-white">Languages for Matching</h2>
+                  <span className="px-1.5 py-0.5 rounded-full bg-pink-500/20 border border-pink-400/40 text-[9px] font-bold text-pink-200">
+                    {selectedLanguages.length} selected
+                  </span>
+                </div>
+                <p className="text-[10px] text-purple-200/80 mt-0.5 leading-snug">
+                  <span className="text-pink-300 font-bold">Exclusively for matchmaking players</span> — choose all languages you speak or are comfortable communicating in.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsLanguagePickerOpen(false)}
+                className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-purple-200 hover:bg-white/15 shrink-0"
+                aria-label="Close languages picker"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="relative my-2.5 shrink-0">
+              <Search className="w-3.5 h-3.5 text-pink-300/80 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={languageSearch}
+                onChange={(e) => setLanguageSearch(e.target.value)}
+                placeholder="Filter languages..."
+                className="w-full h-9 pl-8 pr-3 rounded-xl bg-[#130322] border border-pink-400/30 text-xs font-semibold text-white placeholder-purple-300/40 focus:outline-none focus:border-[#FF2E93]"
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto no-scrollbar grid grid-cols-2 gap-1.5 pr-0.5 pb-2">
+              {MATCHMAKING_LANGUAGES.filter((l) =>
+                l.toLowerCase().includes(languageSearch.trim().toLowerCase())
+              ).map((lang) => {
+                const active = selectedLanguages.includes(lang);
+                return (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => toggleLanguage(lang)}
+                    className={`px-2.5 py-2 rounded-xl text-[11px] font-bold flex items-center justify-between gap-1 transition-all ${
+                      active
+                        ? 'bg-gradient-to-r from-[#FF2E93] to-[#C026D3] border border-pink-200/80 text-white shadow-[0_0_12px_rgba(255,46,147,0.45)]'
+                        : 'bg-[#130322]/65 border border-purple-400/25 text-purple-200/90 hover:border-pink-400/50'
+                    }`}
+                  >
+                    <span className="truncate">{lang}</span>
+                    {active && <Check className="w-3 h-3 shrink-0 stroke-[3]" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsLanguagePickerOpen(false)}
+              className="mt-2 w-full h-9 rounded-full bg-gradient-to-r from-[#FF2E93] via-[#EC4899] to-[#8B5CF6] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(255,46,147,0.55)] shrink-0"
+            >
+              <Check className="w-3.5 h-3.5 stroke-[2.8]" />
+              <span>Done</span>
+            </button>
           </div>
         </div>
       )}

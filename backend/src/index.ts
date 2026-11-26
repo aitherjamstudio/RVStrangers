@@ -160,18 +160,20 @@ interface UserSessionResult {
   };
 }
 
-function parseInterestsJson(raw: any): string[] {
-  if (Array.isArray(raw)) return raw.map(String).slice(0, 6);
+function parseJsonArray(raw: any, maxItems = 12): string[] {
+  if (Array.isArray(raw)) return raw.map(String).slice(0, maxItems);
   if (typeof raw === 'string') {
     try {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed.map(String).slice(0, 6);
+      if (Array.isArray(parsed)) return parsed.map(String).slice(0, maxItems);
     } catch {}
   }
   return [];
 }
 
 function formatUserProfile(user: any) {
+  const parsedLanguages = parseJsonArray(user.matchmaking_languages, 29);
+  const fallbackLanguage = user.preferred_language || 'English';
   return {
     id: user.id,
     name: user.display_name,
@@ -180,8 +182,10 @@ function formatUserProfile(user: any) {
     avatar: user.avatar_url,
     gender: user.gender || 'unspecified',
     bio: user.bio || '',
-    language: user.preferred_language || 'English',
-    interests: parseInterestsJson(user.interests),
+    country: user.country || '',
+    language: fallbackLanguage,
+    languages: parsedLanguages.length > 0 ? parsedLanguages : [fallbackLanguage],
+    interests: parseJsonArray(user.interests, 6),
     isGuest: Boolean(user.is_guest),
   };
 }
@@ -1737,7 +1741,7 @@ export default {
         return jsonResponse({ success: true, valid: true, available: !existing });
       }
 
-      // POST /api/profile (Update display name, handle, avatar, gender, bio, language, interests in D1)
+      // POST /api/profile (Update display name, handle, avatar, gender, bio, country, matchmaking languages, interests in D1)
       if (url.pathname === '/api/profile' && method === 'POST') {
         const auth = await authenticateRequest(request, env);
         if (!auth) return errorResponse('Unauthorized', 401);
@@ -1748,7 +1752,14 @@ export default {
         const avatar = body.avatar !== undefined ? String(body.avatar).trim().slice(0, 300) : null;
         const gender = body.gender !== undefined ? String(body.gender).trim().slice(0, 32) : null;
         const bio = body.bio !== undefined ? String(body.bio).trim().slice(0, 120) : null;
-        const language = body.language !== undefined ? String(body.language).trim().slice(0, 32) : null;
+        const country = body.country !== undefined ? String(body.country).trim().slice(0, 80) : null;
+        const cleanLanguages = Array.isArray(body.languages)
+          ? body.languages.map((x: any) => String(x).trim().slice(0, 40)).filter(Boolean).slice(0, 29)
+          : null;
+        const languagesJson = cleanLanguages ? JSON.stringify(cleanLanguages) : null;
+        const language = cleanLanguages && cleanLanguages.length > 0
+          ? cleanLanguages[0]
+          : (body.language !== undefined ? String(body.language).trim().slice(0, 40) : null);
         const interestsJson = Array.isArray(body.interests)
           ? JSON.stringify(body.interests.map((x: any) => String(x).trim().slice(0, 30)).filter(Boolean).slice(0, 6))
           : null;
@@ -1772,7 +1783,9 @@ export default {
             avatar_url = COALESCE(?, avatar_url),
             gender = COALESCE(?, gender),
             bio = COALESCE(?, bio),
+            country = COALESCE(?, country),
             preferred_language = COALESCE(?, preferred_language),
+            matchmaking_languages = COALESCE(?, matchmaking_languages),
             interests = COALESCE(?, interests),
             updated_at = datetime('now')
            WHERE id = ?`
@@ -1782,7 +1795,9 @@ export default {
           avatar || null,
           gender || null,
           bio !== null ? bio : null,
+          country !== null ? country : null,
           language || null,
+          languagesJson,
           interestsJson,
           auth.sub
         ).run();

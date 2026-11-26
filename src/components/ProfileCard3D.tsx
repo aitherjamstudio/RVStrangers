@@ -13,7 +13,8 @@ interface ProfileCard3DProps {
   handle?: string;
   gender?: string;
   bio?: string;
-  language?: string;
+  country?: string;
+  languages?: string[];
   interests?: string[];
   onBoxClick?: () => void;
   onCardClick?: () => void;
@@ -28,7 +29,8 @@ function createIdentityCardTexture(params: {
   handle: string;
   gender: string;
   bio: string;
-  language: string;
+  country: string;
+  languages: string[];
   interests: string[];
   avatarImg?: HTMLImageElement | null;
 }): THREE.CanvasTexture {
@@ -228,8 +230,8 @@ function createIdentityCardTexture(params: {
   ctx.fillText(`${bioStr.length} / 120`, 600, 562);
   ctx.textAlign = 'left';
 
-  // Row 4: Language
-  drawRoundRect(42, 594, 576, 76, 20);
+  // Row 4: Country + Matchmaking Languages
+  drawRoundRect(42, 594, 282, 76, 20);
   ctx.fillStyle = 'rgba(19, 3, 34, 0.78)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(244, 114, 182, 0.28)';
@@ -237,10 +239,25 @@ function createIdentityCardTexture(params: {
 
   ctx.font = '17px sans-serif';
   ctx.fillStyle = 'rgba(216, 180, 254, 0.72)';
-  ctx.fillText('Language', 86, 622);
-  ctx.font = 'bold 22px sans-serif';
+  ctx.fillText('Country', 74, 622);
+  ctx.font = 'bold 20px sans-serif';
   ctx.fillStyle = '#FFFFFF';
-  ctx.fillText(params.language || 'English', 86, 654);
+  ctx.fillText((params.country || 'Select').slice(0, 14), 74, 654);
+
+  drawRoundRect(336, 594, 282, 76, 20);
+  ctx.fillStyle = 'rgba(19, 3, 34, 0.78)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(244, 114, 182, 0.28)';
+  ctx.stroke();
+
+  ctx.font = '17px sans-serif';
+  ctx.fillStyle = 'rgba(216, 180, 254, 0.72)';
+  ctx.fillText('Match Languages', 368, 622);
+  ctx.font = 'bold 20px sans-serif';
+  ctx.fillStyle = '#FFFFFF';
+  const langs = params.languages && params.languages.length > 0 ? params.languages : ['English'];
+  const langLabel = langs.length > 1 ? `${langs[0].slice(0, 9)} +${langs.length - 1}` : langs[0].slice(0, 14);
+  ctx.fillText(langLabel, 368, 654);
 
   // Row 5: Interests (up to 6)
   ctx.font = 'bold 20px sans-serif';
@@ -295,7 +312,8 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
   handle = 'johndon1247',
   gender = 'unspecified',
   bio = 'Here for deep conversations and interesting people.',
-  language = 'English',
+  country = '',
+  languages = ['English'],
   interests = ['Games', 'Music', 'Psychology'],
   onBoxClick,
   onCardClick,
@@ -315,7 +333,8 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
     handle,
     gender,
     bio,
-    language,
+    country,
+    languages,
     interests,
   });
   profileDataRef.current = {
@@ -324,7 +343,8 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
     handle,
     gender,
     bio,
-    language,
+    country,
+    languages,
     interests,
   };
 
@@ -352,7 +372,8 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
       handle: p.handle || 'johndon1247',
       gender: p.gender || 'unspecified',
       bio: p.bio || '',
-      language: p.language || 'English',
+      country: p.country || '',
+      languages: p.languages || ['English'],
       interests: p.interests || [],
       avatarImg: avatarImgRef.current,
     });
@@ -378,7 +399,7 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedAvatar, displayName, handle, gender, bio, language, interests]);
+  }, [selectedAvatar, displayName, handle, gender, bio, country, languages, interests]);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -541,7 +562,8 @@ export const ProfileCard3D: React.FC<ProfileCard3DProps> = ({
           handle: p.handle || 'johndon1247',
           gender: p.gender || 'unspecified',
           bio: p.bio || '',
-          language: p.language || 'English',
+          country: p.country || '',
+          languages: p.languages || ['English'],
           interests: p.interests || [],
           avatarImg: avatarImgRef.current,
         });

@@ -13,7 +13,9 @@ export interface ApiUser {
   avatar: string;
   gender?: string;
   bio?: string;
+  country?: string;
   language?: string;
+  languages?: string[];
   interests?: string[];
   isGuest: boolean;
 }
@@ -251,7 +253,7 @@ class ApiService {
     }
   }
 
-  // --- Profile: Update Nickname, Username, Avatar, Gender, Bio, Language, Interests ---
+  // --- Profile: Update Nickname, Username, Avatar, Gender, Bio, Country, Matchmaking Languages, Interests ---
   async updateProfile(
     profile: {
       name?: string;
@@ -259,7 +261,9 @@ class ApiService {
       avatar?: string;
       gender?: string;
       bio?: string;
+      country?: string;
       language?: string;
+      languages?: string[];
       interests?: string[];
     },
     token: string
