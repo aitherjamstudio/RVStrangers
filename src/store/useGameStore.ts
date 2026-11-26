@@ -22,6 +22,25 @@ const getInitialSession = (): AuthSession | null => {
 
 const initialSession = getInitialSession();
 
+const hasCompletedProfile = (user?: {
+  name?: string;
+  handle?: string;
+  gender?: string;
+  country?: string;
+  language?: string;
+  languages?: string[];
+} | null): boolean => {
+  if (!user) return false;
+  const hasName = Boolean(user.name && user.name.trim().length > 0);
+  const hasHandle = Boolean(user.handle && user.handle.trim().length >= 3);
+  const hasGender = Boolean(user.gender && user.gender !== 'unspecified');
+  const hasCountry = Boolean(user.country && user.country.trim().length > 0);
+  const hasLanguage =
+    (Array.isArray(user.languages) && user.languages.length > 0) ||
+    Boolean(user.language && user.language.trim().length > 0);
+  return hasName && hasHandle && hasGender && hasCountry && hasLanguage;
+};
+
 interface GameStore {
   currentScreen: ScreenType;
   setScreen: (screen: ScreenType) => void;
@@ -235,6 +254,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       try {
         localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
       } catch {}
+      const profileExists = hasCompletedProfile(session.user);
       set({
         token: res.token,
         currentUser: session.user,
@@ -242,9 +262,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
         diamonds: res.wallet?.diamonds ?? 0,
         isAuthenticated: true,
         isGuest: false,
-        currentScreen: 'profile-setup', // Login users from workers are routed to profile setup card experience
+        currentScreen: profileExists ? 'dashboard' : 'profile-setup',
       });
-      get().showToast(`Signed in with Google! Welcome ${res.user.name} 👋`);
+      get().showToast(
+        profileExists
+          ? `Welcome back, ${res.user.name}! 🌟`
+          : `Signed in with Google! Welcome ${res.user.name} 👋`
+      );
     } else {
       get().showToast(res?.error || 'Google login failed.');
     }
@@ -347,6 +371,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
           email: res.user.email,
           handle: res.user.handle,
           avatar: res.user.avatar,
+          gender: res.user.gender,
+          bio: res.user.bio,
+          country: res.user.country,
+          language: res.user.language,
+          languages: Array.isArray(res.user.languages) ? res.user.languages : (res.user.language ? [res.user.language] : ['English']),
+          interests: Array.isArray(res.user.interests) ? res.user.interests : [],
           isGuest: false,
           createdAt: new Date().toISOString(),
         },
@@ -387,6 +417,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
           email: res.user.email,
           handle: res.user.handle,
           avatar: res.user.avatar,
+          gender: res.user.gender,
+          bio: res.user.bio,
+          country: res.user.country,
+          language: res.user.language,
+          languages: Array.isArray(res.user.languages) ? res.user.languages : (res.user.language ? [res.user.language] : ['English']),
+          interests: Array.isArray(res.user.interests) ? res.user.interests : [],
           isGuest: false,
           createdAt: new Date().toISOString(),
         },

@@ -100,31 +100,64 @@ export const ProfileSetupView: React.FC = () => {
   const [languageSearch, setLanguageSearch] = useState('');
 
   const [usernameStatus, setUsernameStatus] = useState<'valid' | 'taken' | 'invalid' | 'checking'>('valid');
+  const [usernameError, setUsernameError] = useState<string>('');
+  const [fieldErrors, setFieldErrors] = useState<{
+    nickname?: string;
+    gender?: string;
+    country?: string;
+    languages?: string;
+  }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const checkTimerRef = useRef<number | null>(null);
 
   // Live username format & availability check
   useEffect(() => {
+    let cancelled = false;
     const clean = username.trim().replace(/^@+/, '').toLowerCase();
-    if (!/^[a-z0-9_]{3,25}$/.test(clean)) {
+
+    if (clean.length < 3) {
       setUsernameStatus('invalid');
+      setUsernameError('Username must be at least 3 characters.');
+      return;
+    }
+    if (!/^[a-z0-9_]+$/.test(clean)) {
+      setUsernameStatus('invalid');
+      setUsernameError('Only letters, numbers, and underscores (_) are allowed.');
+      return;
+    }
+    if (clean.length > 25) {
+      setUsernameStatus('invalid');
+      setUsernameError('Username must be 25 characters or fewer.');
       return;
     }
 
     // Matches user's existing handle -> always available
     if (clean === (currentUser?.handle || '').replace(/^@+/, '').toLowerCase()) {
       setUsernameStatus('valid');
+      setUsernameError('');
       return;
     }
 
     setUsernameStatus('checking');
+    setUsernameError('');
     if (checkTimerRef.current) window.clearTimeout(checkTimerRef.current);
     checkTimerRef.current = window.setTimeout(async () => {
       const res = await api.checkUsername(clean, token);
-      setUsernameStatus(res.valid && res.available ? 'valid' : res.valid ? 'taken' : 'invalid');
+      if (cancelled) return;
+      if (res.valid && res.available) {
+        setUsernameStatus('valid');
+        setUsernameError('');
+      } else if (res.valid) {
+        setUsernameStatus('taken');
+        setUsernameError('That username is already taken.');
+      } else {
+        setUsernameStatus('invalid');
+        setUsernameError('Use 3–25 letters, numbers, or underscores (_).');
+      }
     }, 350);
 
     return () => {
+      cancelled = true;
       if (checkTimerRef.current) window.clearTimeout(checkTimerRef.current);
     };
   }, [username, token, currentUser?.handle]);
@@ -180,17 +213,67 @@ export const ProfileSetupView: React.FC = () => {
     if (e) e.preventDefault();
     if (isSubmitting) return;
 
+    const cleanName = displayName.trim();
     const cleanHandle = username.trim().replace(/^@+/, '').toLowerCase();
-    if (!/^[a-z0-9_]{3,25}$/.test(cleanHandle)) {
-      showToast('Username must be 3–25 letters, numbers, or underscores.');
+    const nextErrors: { nickname?: string; gender?: string; country?: string; languages?: string } = {};
+
+    if (!cleanName) {
+      nextErrors.nickname = 'Nickname is required.';
+    }
+    if (!gender || gender === 'unspecified') {
+      nextErrors.gender = 'Gender is required.';
+    }
+    if (!country.trim()) {
+      nextErrors.country = 'Country is required.';
+    }
+    if (selectedLanguages.length === 0) {
+      nextErrors.languages = 'Select at least 1 language.';
+    }
+
+    setFieldErrors(nextErrors);
+
+    if (nextErrors.nickname) {
+      showToast('Please enter your nickname.');
+      return;
+    }
+    if (nextErrors.gender) {
+      showToast('Please select your gender.');
+      return;
+    }
+
+    if (cleanHandle.length < 3) {
       setUsernameStatus('invalid');
+      setUsernameError('Username must be at least 3 characters.');
+      showToast('Username must be at least 3 characters.');
+      return;
+    }
+    if (!/^[a-z0-9_]+$/.test(cleanHandle)) {
+      setUsernameStatus('invalid');
+      setUsernameError('Only letters, numbers, and underscores (_) are allowed.');
+      showToast('Username can only use letters, numbers, and underscores.');
+      return;
+    }
+    if (cleanHandle.length > 25) {
+      setUsernameStatus('invalid');
+      setUsernameError('Username must be 25 characters or fewer.');
+      showToast('Username must be 25 characters or fewer.');
+      return;
+    }
+    if (usernameStatus === 'checking') {
+      showToast('Checking username availability...');
       return;
     }
     if (usernameStatus === 'taken') {
+      setUsernameError('That username is already taken.');
       showToast('That username is already taken. Try another!');
       return;
     }
-    if (selectedLanguages.length === 0) {
+    if (nextErrors.country) {
+      showToast('Please select your country.');
+      setIsCountryPickerOpen(true);
+      return;
+    }
+    if (nextErrors.languages) {
       showToast('Select at least 1 language for matchmaking.');
       setIsLanguagePickerOpen(true);
       return;
@@ -198,12 +281,12 @@ export const ProfileSetupView: React.FC = () => {
 
     setIsSubmitting(true);
     const ok = await updateUserProfile({
-      name: displayName.trim() || currentUser?.name || 'Adventurer',
+      name: cleanName,
       handle: cleanHandle,
       avatar: selectedAvatar,
       gender,
       bio: bio.trim(),
-      country,
+      country: country.trim(),
       language: selectedLanguages[0] || 'English',
       languages: selectedLanguages,
       interests,
@@ -402,17 +485,30 @@ export const ProfileSetupView: React.FC = () => {
               {/* Row 1: Nickname + Gender */}
               <div className="grid grid-cols-[1.45fr_1fr] gap-2 sm:gap-2.5">
                 {/* Nickname */}
-                <div className="flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-3 py-2 transition-colors">
+                <div
+                  className={`flex items-center gap-2 rounded-xl bg-[#130322]/70 border px-3 py-2 transition-colors ${
+                    fieldErrors.nickname
+                      ? 'border-rose-500/80 focus-within:border-rose-400'
+                      : 'border-pink-400/25 focus-within:border-[#FF2E93]'
+                  }`}
+                >
                   <User className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <span className="block text-[9.5px] text-purple-300/70 leading-none mb-0.5">Nickname</span>
+                    <span className="block text-[9.5px] text-purple-300/70 leading-none mb-0.5">
+                      Nickname <span className="text-pink-400">*</span>
+                    </span>
                     <input
                       type="text"
                       required
                       maxLength={30}
                       enterKeyHint="done"
                       value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
+                      onChange={(e) => {
+                        setDisplayName(e.target.value);
+                        if (fieldErrors.nickname && e.target.value.trim()) {
+                          setFieldErrors((prev) => ({ ...prev, nickname: undefined }));
+                        }
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
@@ -426,7 +522,13 @@ export const ProfileSetupView: React.FC = () => {
                 </div>
 
                 {/* Gender */}
-                <div className="relative flex items-center gap-1.5 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-3 py-2 transition-colors">
+                <div
+                  className={`relative flex items-center gap-1.5 rounded-xl bg-[#130322]/70 border px-3 py-2 transition-colors ${
+                    fieldErrors.gender
+                      ? 'border-rose-500/80 focus-within:border-rose-400'
+                      : 'border-pink-400/25 focus-within:border-[#FF2E93]'
+                  }`}
+                >
                   <svg
                     viewBox="0 0 24 24"
                     className="w-3.5 h-3.5 text-pink-300/90 shrink-0"
@@ -442,13 +544,20 @@ export const ProfileSetupView: React.FC = () => {
                   </svg>
                   <select
                     value={gender}
-                    onChange={(e) => setGender(e.target.value)}
+                    onChange={(e) => {
+                      setGender(e.target.value);
+                      if (fieldErrors.gender && e.target.value !== 'unspecified') {
+                        setFieldErrors((prev) => ({ ...prev, gender: undefined }));
+                      }
+                    }}
                     aria-label="Gender"
-                    className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-purple-100 focus:outline-none appearance-none pr-3 cursor-pointer"
+                    className={`w-full bg-transparent text-[11px] sm:text-xs font-bold focus:outline-none appearance-none pr-3 cursor-pointer ${
+                      gender === 'unspecified' ? 'text-purple-300/60' : 'text-purple-100'
+                    }`}
                   >
                     {GENDERS.map((g) => (
                       <option key={g.value} value={g.value} className="bg-[#1a052b] text-white">
-                        {g.label}
+                        {g.value === 'unspecified' ? 'Gender *' : g.label}
                       </option>
                     ))}
                   </select>
@@ -457,44 +566,53 @@ export const ProfileSetupView: React.FC = () => {
               </div>
 
               {/* Row 2: Username */}
-              <div className="flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-3 py-2 transition-colors">
-                <AtSign className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <span className="block text-[9.5px] text-purple-300/70 leading-none mb-0.5">Username</span>
-                  <input
-                    type="text"
-                    required
-                    maxLength={25}
-                    enterKeyHint="done"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value.replace(/^@+/, '').toLowerCase())}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        e.currentTarget.blur();
-                      }
-                    }}
-                    placeholder="johndon1247"
-                    className="w-full bg-transparent text-[13px] sm:text-sm font-bold text-white placeholder-purple-300/35 focus:outline-none leading-tight select-text"
-                  />
-                </div>
-                <div className="shrink-0 flex items-center">
-                  {usernameStatus === 'checking' && (
-                    <div className="w-3.5 h-3.5 border-2 border-purple-400/30 border-t-pink-400 rounded-full animate-spin" />
-                  )}
-                  {usernameStatus === 'valid' && (
-                    <Check className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.7)]" />
-                  )}
-                  {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
-                    <span
-                      title={usernameStatus === 'taken' ? 'Username already taken' : 'Use 3–25 letters, numbers, or _'}
-                      className="flex items-center gap-1 text-[9px] font-bold text-rose-400"
-                    >
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      <span>{usernameStatus === 'taken' ? 'Taken' : '3+ chars'}</span>
+              <div>
+                <div
+                  className={`flex items-center gap-2 rounded-xl bg-[#130322]/70 border px-3 py-2 transition-colors ${
+                    usernameStatus === 'taken' || usernameStatus === 'invalid'
+                      ? 'border-rose-500/80 focus-within:border-rose-400'
+                      : 'border-pink-400/25 focus-within:border-[#FF2E93]'
+                  }`}
+                >
+                  <AtSign className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="block text-[9.5px] text-purple-300/70 leading-none mb-0.5">
+                      Username <span className="text-pink-400">*</span>
                     </span>
-                  )}
+                    <input
+                      type="text"
+                      required
+                      maxLength={25}
+                      enterKeyHint="done"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value.replace(/^@+/, '').toLowerCase())}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      placeholder="johndon1247"
+                      className="w-full bg-transparent text-[13px] sm:text-sm font-bold text-white placeholder-purple-300/35 focus:outline-none leading-tight select-text"
+                    />
+                  </div>
+                  <div className="shrink-0 flex items-center">
+                    {usernameStatus === 'checking' && (
+                      <div className="w-3.5 h-3.5 border-2 border-purple-400/30 border-t-pink-400 rounded-full animate-spin" />
+                    )}
+                    {usernameStatus === 'valid' && (
+                      <Check className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.7)]" />
+                    )}
+                    {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                      <AlertCircle className="w-4 h-4 text-rose-400" />
+                    )}
+                  </div>
                 </div>
+                {(usernameStatus === 'taken' || usernameStatus === 'invalid') && usernameError && (
+                  <p className="mt-1 px-1 text-[10px] font-semibold text-rose-400 leading-tight">
+                    {usernameError}
+                  </p>
+                )}
               </div>
 
               {/* Row 3: Bio */}
@@ -527,11 +645,15 @@ export const ProfileSetupView: React.FC = () => {
                     setIsCountryPickerOpen(true);
                   }}
                   aria-label="Select country"
-                  className="relative flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 hover:border-[#FF2E93] px-3 py-2 transition-colors text-left"
+                  className={`relative flex items-center gap-2 rounded-xl bg-[#130322]/70 border hover:border-[#FF2E93] px-3 py-2 transition-colors text-left ${
+                    fieldErrors.country ? 'border-rose-500/80' : 'border-pink-400/25'
+                  }`}
                 >
                   <MapPin className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <span className="block text-[9.5px] text-purple-300/70 leading-none mb-0.5">Country</span>
+                    <span className="block text-[9.5px] text-purple-300/70 leading-none mb-0.5">
+                      Country <span className="text-pink-400">*</span>
+                    </span>
                     <span className={`block text-xs font-bold truncate leading-tight ${country ? 'text-white' : 'text-purple-300/50'}`}>
                       {country || 'Select'}
                     </span>
@@ -547,12 +669,14 @@ export const ProfileSetupView: React.FC = () => {
                     setIsLanguagePickerOpen(true);
                   }}
                   aria-label="Select matchmaking languages"
-                  className="relative flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 hover:border-[#FF2E93] px-3 py-2 transition-colors text-left"
+                  className={`relative flex items-center gap-2 rounded-xl bg-[#130322]/70 border hover:border-[#FF2E93] px-3 py-2 transition-colors text-left ${
+                    fieldErrors.languages ? 'border-rose-500/80' : 'border-pink-400/25'
+                  }`}
                 >
                   <Globe className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <span className="block text-[9.5px] text-purple-300/70 leading-none mb-0.5 truncate">
-                      Matchmaking Languages
+                      Matchmaking Languages <span className="text-pink-400">*</span>
                     </span>
                     <span className="block text-xs font-bold text-white truncate leading-tight">
                       {selectedLanguages.length > 1
@@ -799,6 +923,7 @@ export const ProfileSetupView: React.FC = () => {
                     type="button"
                     onClick={() => {
                       setCountry(c);
+                      setFieldErrors((prev) => ({ ...prev, country: undefined }));
                       setIsCountryPickerOpen(false);
                     }}
                     className={`w-full px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between transition-colors ${
