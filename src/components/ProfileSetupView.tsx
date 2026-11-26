@@ -71,9 +71,7 @@ export const ProfileSetupView: React.FC = () => {
   const [displayName, setDisplayName] = useState(currentUser?.name || '');
   const [username, setUsername] = useState(initialCleanHandle || 'stranger');
   const [gender, setGender] = useState(currentUser?.gender || 'unspecified');
-  const [bio, setBio] = useState(
-    currentUser?.bio || 'Here for deep conversations and interesting people.'
-  );
+  const [bio, setBio] = useState(currentUser?.bio || '');
   const [country, setCountry] = useState(currentUser?.country || '');
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(
     currentUser?.languages && currentUser.languages.length > 0
@@ -492,7 +490,7 @@ export const ProfileSetupView: React.FC = () => {
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     placeholder="Here for deep conversations and interesting people."
-                    className="w-full bg-transparent text-[11px] font-semibold text-purple-50 placeholder-purple-300/35 focus:outline-none resize-none leading-snug pr-11"
+                    className="w-full bg-transparent text-[11px] font-semibold text-purple-50 placeholder-purple-300/40 focus:outline-none resize-none leading-snug pr-11 select-text"
                   />
                 </div>
                 <span className="absolute bottom-1.5 right-2.5 text-[9px] font-semibold text-purple-300/60 pointer-events-none">
