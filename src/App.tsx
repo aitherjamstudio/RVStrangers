@@ -31,7 +31,7 @@ export const App: React.FC = () => {
         {currentScreen !== 'welcome' && currentScreen !== 'profile-setup' && <TopNav />}
 
         {/* Active Screen Display (Routed by state) */}
-        <main className={`flex-1 w-full ${currentScreen === 'welcome' || currentScreen === 'profile-setup' ? 'flex flex-col items-center justify-center' : ''}`}>
+        <main className={`flex-1 w-full ${currentScreen === 'welcome' ? 'flex flex-col items-center justify-center' : currentScreen === 'profile-setup' ? 'flex flex-col items-center' : ''}`}>
           {currentScreen === 'welcome' && <WelcomeAuthView />}
           {currentScreen === 'profile-setup' && <ProfileSetupView />}
           {currentScreen === 'dashboard' && <DashboardView />}

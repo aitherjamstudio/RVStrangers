@@ -217,20 +217,11 @@ export const ProfileSetupView: React.FC = () => {
     setScreen('dashboard');
   };
 
-  // Dismiss native Android keyboard when tapping outside inputs/controls
-  const handleDismissKeyboard = (e: React.PointerEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement | null;
-    if (!target || target.closest('input, textarea, select, button, label')) return;
-    const active = document.activeElement as HTMLElement | null;
-    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-      active.blur();
-    }
-  };
-
   return (
     <div
-      onPointerDown={handleDismissKeyboard}
-      className="fixed inset-0 w-full h-[100dvh] max-h-[100dvh] bg-[#07000E] text-white flex flex-col items-center justify-between overflow-hidden select-none px-3.5 py-2.5 sm:py-4 font-comfortaa"
+      className={`w-full min-h-[100dvh] bg-[#07000E] text-white flex flex-col items-center overflow-y-auto overscroll-contain px-3.5 py-2.5 sm:py-4 font-comfortaa ${
+        stage === 'card_flipped' ? 'justify-start gap-2.5 pb-6 select-text' : 'justify-between select-none'
+      }`}
     >
       {/* Ambient Cyberpunk Radial Glows */}
       <div className="fixed -top-28 -left-24 w-80 h-80 rounded-full bg-gradient-to-br from-[#FF2E93]/25 via-[#D946EF]/10 to-transparent blur-[95px] pointer-events-none" />
@@ -304,35 +295,35 @@ export const ProfileSetupView: React.FC = () => {
       {/* ======================================================== */}
       {/* CENTER STAGE: 3D UNBOXING OR ORNATE IDENTITY CARD        */}
       {/* ======================================================== */}
-      <div className="relative w-full max-w-[370px] flex-1 flex flex-col items-center justify-center my-auto min-h-0">
-        {/* 3D WebGL Canvas (stays mounted behind so transitions are seamless) */}
-        <div
-          className={
-            stage === 'card_flipped'
-              ? 'absolute inset-0 pointer-events-none opacity-0'
-              : 'relative w-full h-full min-h-[260px] max-h-[460px] flex items-center justify-center'
-          }
-        >
-          {stage !== 'card_flipped' && (
+      <div
+        className={`relative w-full max-w-[370px] flex flex-col items-center ${
+          stage === 'card_flipped'
+            ? 'justify-start py-1'
+            : 'flex-1 justify-center my-auto min-h-0'
+        }`}
+      >
+        {/* 3D WebGL Canvas (unmounted once flipped so WebGL loop & resize don't interfere with keyboard) */}
+        {stage !== 'card_flipped' && (
+          <div className="relative w-full h-full min-h-[260px] max-h-[460px] flex items-center justify-center">
             <div className="absolute bottom-4 w-40 h-4 rounded-[100%] bg-black/80 blur-md pointer-events-none" />
-          )}
 
-          <ProfileCard3D
-            stage={stage}
-            selectedAvatar={selectedAvatar}
-            displayName={displayName}
-            handle={username}
-            gender={gender}
-            bio={bio}
-            country={country}
-            languages={selectedLanguages}
-            interests={interests}
-            onBoxClick={handleBoxClick}
-            onCardClick={handleCardClick}
-            onOpeningFinished={handleOpeningFinished}
-            onFlipFinished={handleFlipFinished}
-          />
-        </div>
+            <ProfileCard3D
+              stage={stage}
+              selectedAvatar={selectedAvatar}
+              displayName={displayName}
+              handle={username}
+              gender={gender}
+              bio={bio}
+              country={country}
+              languages={selectedLanguages}
+              interests={interests}
+              onBoxClick={handleBoxClick}
+              onCardClick={handleCardClick}
+              onOpeningFinished={handleOpeningFinished}
+              onFlipFinished={handleFlipFinished}
+            />
+          </div>
+        )}
 
         {/* STAGE 5: ORNATE PROTOTYPE IDENTITY CARD */}
         {stage === 'card_flipped' && (
@@ -411,7 +402,7 @@ export const ProfileSetupView: React.FC = () => {
               {/* Row 1: Nickname + Gender */}
               <div className="grid grid-cols-[1.45fr_1fr] gap-1.5 sm:gap-2">
                 {/* Nickname */}
-                <label className="flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors cursor-text">
+                <div className="flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors">
                   <User className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5">Nickname</span>
@@ -432,7 +423,7 @@ export const ProfileSetupView: React.FC = () => {
                       className="w-full bg-transparent text-xs font-bold text-white placeholder-purple-300/35 focus:outline-none leading-tight select-text"
                     />
                   </div>
-                </label>
+                </div>
 
                 {/* Gender */}
                 <div className="relative flex items-center gap-1.5 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors">
@@ -466,7 +457,7 @@ export const ProfileSetupView: React.FC = () => {
               </div>
 
               {/* Row 2: Username */}
-              <label className="flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors cursor-text">
+              <div className="flex items-center gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors">
                 <AtSign className="w-3.5 h-3.5 text-pink-300/90 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5">Username</span>
@@ -504,25 +495,19 @@ export const ProfileSetupView: React.FC = () => {
                     </span>
                   )}
                 </div>
-              </label>
+              </div>
 
               {/* Row 3: Bio */}
-              <label className="relative flex items-start gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors cursor-text">
+              <div className="relative flex items-start gap-2 rounded-xl bg-[#130322]/70 border border-pink-400/25 focus-within:border-[#FF2E93] px-2.5 py-1.5 transition-colors">
                 <Quote className="w-3.5 h-3.5 text-pink-300/90 shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <span className="block text-[9px] text-purple-300/70 leading-none mb-0.5">Bio</span>
                   <textarea
                     rows={2}
                     maxLength={120}
-                    enterKeyHint="done"
+                    enterKeyHint="enter"
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        e.currentTarget.blur();
-                      }
-                    }}
                     placeholder="Here for deep conversations and interesting people."
                     className="w-full bg-transparent text-[11px] font-semibold text-purple-50 placeholder-purple-300/40 focus:outline-none resize-none overflow-y-auto leading-snug pr-11 select-text"
                   />
@@ -530,7 +515,7 @@ export const ProfileSetupView: React.FC = () => {
                 <span className="absolute bottom-1.5 right-2.5 text-[9px] font-semibold text-purple-300/60 pointer-events-none">
                   {bio.length} / 120
                 </span>
-              </label>
+              </div>
 
               {/* Row 4: Country + Matchmaking Languages */}
               <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
